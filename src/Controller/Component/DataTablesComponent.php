@@ -14,8 +14,9 @@ class DataTablesComponent extends Component
         'start' => 0,
         'length' => 10,
         'order' => [],
-        'conditions' => [],
-        'matching' => []
+        'conditionsOr' => [],  // table-wide search conditions
+        'conditionsAnd' => [], // column search conditions
+        'matching' => [],      // column search conditions for foreign tables
     ];
 
     protected $_viewVars = [
@@ -67,14 +68,29 @@ class DataTablesComponent extends Component
             $this->_viewVars['draw'] = (int)$this->request->query['draw'];
         }
 
-        // -- check columns
-
-        if( isset($this->request->query['columns']) && !empty($this->request->query['columns']) )
+        // -- don't support any search if columns data missing
+        if( !isset($this->request->query['columns']) ||
+            empty($this->request->query['columns']) )
         {
-            foreach($this->request->query['columns'] as $column) {
-                if( !empty($column['search']['value']) ) {
-                    $this->_addCondition( $column['name'], $column['search']['value'] );
-                }
+            return;
+        }
+
+        // -- check table search field
+        $globalSearch = (isset($this->request->query['search']['value']) ?
+            $this->request->query['search']['value'] : false);
+
+        // -- add conditions for both table-wide and column search fields
+        foreach($this->request->query['columns'] as $column)
+        {
+            if( $globalSearch && $column['searchable'] == 'true' ) {
+                $this->_addCondition( $column['name'], $globalSearch, 'or' );
+            }
+            $localSearch = $column['search']['value'];
+            /* In some circumstances (no "table-search" row present), DataTables
+               fills in all column searches with the global search. Compromise:
+               Ignore local field if it matches global search. */
+            if( !empty($localSearch) && ($localSearch !== $globalSearch) ) {
+                $this->_addCondition( $column['name'], $column['search']['value'] );
             }
         }
 
@@ -103,12 +119,13 @@ class DataTablesComponent extends Component
         $this->_viewVars['recordsTotal'] = $data->count();
 
         // -- filter result
-        $data->where( $this->config('conditions') );
+        $data->where($this->config('conditionsAnd'));
         foreach($this->config('matching') as $association => $where) {
             $data->matching( $association, function ($q) use ($where) {
                 return $q->where($where);
             });
         };
+        $data->andWhere(['or' => $this->config('conditionsOr')]);
 
         $this->_viewVars['recordsFiltered'] = $data->count();
 
@@ -140,16 +157,20 @@ class DataTablesComponent extends Component
         $this->_getController()->set('_serialize', $_serialize);
     }
 
-    private function _addCondition($column, $value)
+    private function _addCondition($column, $value, $type = 'and')
     {
         $condition = ["$column LIKE" => "$value%"];
 
+        if( $type === 'or' ) {
+            $this->config('conditionsOr', $condition); // merges
+            return;
+        }
+
         list($association, $field) = explode('.', $column);
         if( $this->_tableName == $association) {
-            $this->config('conditions', $condition); // merges
+            $this->config('conditionsAnd', $condition); // merges
         } else {
             $this->config('matching', [$association => $condition]); // merges
         }
     }
-
 }
