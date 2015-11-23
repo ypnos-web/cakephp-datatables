@@ -142,20 +142,14 @@ class DataTablesComponent extends Component
 
     private function _addCondition($column, $value)
     {
-        $conditions = [];
-        $matching = [];
+        $condition = ["$column LIKE" => "$value%"];
 
         list($association, $field) = explode('.', $column);
-
         if( $this->_tableName == $association) {
-            $conditions[] = $column . ' LIKE "' . $value . '%"';
+            $this->config('conditions', $condition); // merges
         } else {
-            $matching[$association][] = $column . ' LIKE "' . $value . '%"';
+            $this->config('matching', [$association => $condition]); // merges
         }
-
-        $this->config('conditions', $conditions);
-        $this->config('matching', $matching);
-
     }
 
 }
