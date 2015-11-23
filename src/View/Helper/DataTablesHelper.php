@@ -56,7 +56,7 @@ class DataTablesHelper extends Helper
 
     public function draw($selector)
     {
-        echo sprintf('delay=%d;table=jQuery("%s").dataTable(%s);initSearch();', $this->config('delay'), $selector, json_encode($this->config()) );
+        return sprintf('delay=%d;table=jQuery("%s").dataTable(%s);initSearch();', $this->config('delay'), $selector, json_encode($this->config()) );
     }
 
 }
