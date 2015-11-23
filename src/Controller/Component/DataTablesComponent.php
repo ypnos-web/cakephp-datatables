@@ -84,10 +84,11 @@ class DataTablesComponent extends Component
      * Find data
      *
      * @param $tableName
+     * @param $finder
      * @param array $options
      * @return array|\Cake\ORM\Query
      */
-    public function find($tableName, array $options = [])
+    public function find($tableName, $finder = 'all', array $options = [])
     {
 
         // -- get table object
@@ -96,7 +97,7 @@ class DataTablesComponent extends Component
 
         // -- get query options
         $this->_processRequest();
-        $data = $table->find('all', $options);
+        $data = $table->find($finder, $options);
 
         // -- record count
         $this->_viewVars['recordsTotal'] = $data->count();
