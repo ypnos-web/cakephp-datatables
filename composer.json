@@ -1,7 +1,7 @@
 {
-    "name": "fheider/cakephp-datatables",
+    "name": "ypnos-web/cakephp-datatables",
     "description": "Use jQuery dataTables for CakePHP 3",
-    "homepage": "https://github.com/fheider/cakephp-datatables",
+    "homepage": "https://github.com/ypnos-web/cakephp-datatables",
     "type": "cakephp-plugin",
     "keywords": ["cakephp", "datatables"],
     "license": "MIT",
@@ -10,12 +10,13 @@
             "name": "Frank Heider",
             "homepage": "https://github.com/fheider",
             "role": "Author"
+        },
+        {
+            "name": "Johannes Jordan",
+            "homepage": "https://github.com/ypnos-web",
+            "role": "Author"
         }
     ],
-    "support": {
-		"issues": "https://github.com/fheider/cakephp-datatables/issues",
-		"source": "https://github.com/fheider/cakephp-datatables"
-    },
     "require": {
         "php": ">=5.4.16",
         "cakephp/cakephp": "~3.0"
