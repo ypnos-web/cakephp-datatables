@@ -37,7 +37,7 @@ class DataTablesHelper extends Helper
         $this->config('language', [
             'paginate' => [
                 'next' => '<i class="fa fa-chevron-right"></i>',
-                'prev' => '<i class="fa fa-chevron-left"></i>'
+                'previous' => '<i class="fa fa-chevron-left"></i>'
             ],
             'processing' => __d('DataTables', 'Your request is processing ...'),
             'lengthMenu' =>
