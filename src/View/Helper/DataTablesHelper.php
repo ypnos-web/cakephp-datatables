@@ -22,13 +22,22 @@ class DataTablesHelper extends Helper
         'serverSide' => true,
         'deferRender' => true,
         'dom' => '<<"row"<"col-sm-4"i><"col-sm-8"lp>>rt>',
-        'delay' => 600
+        'js' => [
+            'calls' => null,
+            'delay' => 600,
+        ],
     ];
 
     public function init(array $options = [])
     {
         $this->_templater = $this->templater();
         $this->config($options);
+
+        // -- default to initColumnSearch() if user didn't specify js calls array
+        if(is_null($this->config('js.calls')))
+        {
+            $this->config('js.calls', ['initColumnSearch']);
+        }
 
         // -- load i18n
         $this->config('language', [
@@ -53,7 +62,18 @@ class DataTablesHelper extends Helper
 
     public function draw($selector)
     {
-        return sprintf('delay=%d;table=jQuery("%s").dataTable(%s);initSearch();', $this->config('delay'), $selector, json_encode($this->config()) );
+        // -- pass on parameters to javascript
+        $json = json_encode($this->config('js'));
+        $js = "params = $json;";
+
+        // -- initialize DataTables
+        $json = json_encode($this->config());
+        $js .= "table=jQuery('$selector').dataTable($json);";
+
+        // -- call javascript methods
+        $js .= implode('();', $this->config('js.calls')).'();';
+
+        return $js;
     }
 
 }
