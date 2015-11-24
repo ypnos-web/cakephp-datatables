@@ -12,6 +12,7 @@ var oFilterTimerId = null;
 
 /**
  * Add search behavior to all search fields in column footer
+ * Uses parameter 'delay' (milliseconds)
  */
 function initColumnSearch()
 {
