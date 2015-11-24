@@ -17,9 +17,6 @@ class DataTablesHelper extends Helper
     use StringTemplateTrait;
 
     protected $_defaultConfig = [
-        'ajax' => [
-            'dataSrc' => 'data'
-        ],
         'searching' => true,
         'processing' => true,
         'serverSide' => true,
