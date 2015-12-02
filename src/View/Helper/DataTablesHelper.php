@@ -68,6 +68,9 @@ class DataTablesHelper extends Helper
 
         // -- initialize DataTables
         $json = json_encode($this->config());
+        $code = 'function (args) { return $1.apply(this, arguments); }';
+        $json = preg_replace('/"callback:(.*?)"/', $code, $json);
+
         $js .= "table=jQuery('$selector').dataTable($json);";
 
         // -- call javascript methods
