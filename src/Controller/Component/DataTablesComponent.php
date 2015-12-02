@@ -14,6 +14,7 @@ class DataTablesComponent extends Component
         'start' => 0,
         'length' => 10,
         'order' => [],
+        'prefixSearch' => true, // use "LIKE …%" instead of "LIKE %…%" conditions
         'conditionsOr' => [],  // table-wide search conditions
         'conditionsAnd' => [], // column search conditions
         'matching' => [],      // column search conditions for foreign tables
@@ -159,7 +160,8 @@ class DataTablesComponent extends Component
 
     private function _addCondition($column, $value, $type = 'and')
     {
-        $condition = ["$column LIKE" => "$value%"];
+        $right = ($this->config('prefixSearch') ? "$value%" : "%$value%");
+        $condition = ["$column LIKE" => $right];
 
         if( $type === 'or' ) {
             $this->config('conditionsOr', $condition); // merges
