@@ -87,10 +87,7 @@ class DataTablesComponent extends Component
                 $this->_addCondition( $column['name'], $globalSearch, 'or' );
             }
             $localSearch = $column['search']['value'];
-            /* In some circumstances (no "table-search" row present), DataTables
-               fills in all column searches with the global search. Compromise:
-               Ignore local field if it matches global search. */
-            if( !empty($localSearch) && ($localSearch !== $globalSearch) ) {
+            if( !empty($localSearch) ) {
                 $this->_addCondition( $column['name'], $column['search']['value'] );
             }
         }
