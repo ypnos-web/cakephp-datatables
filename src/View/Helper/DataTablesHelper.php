@@ -31,13 +31,6 @@ class DataTablesHelper extends Helper
     public function init(array $options = [])
     {
         $this->_templater = $this->templater();
-        $this->config($options);
-
-        // -- default to initColumnSearch() if user didn't specify js calls array
-        if(is_null($this->config('js.calls')))
-        {
-            $this->config('js.calls', ['initColumnSearch']);
-        }
 
         // -- load i18n
         $this->config('language', [
@@ -56,6 +49,15 @@ class DataTablesHelper extends Helper
             'info' => __d('DataTables', 'Showing _START_ to _END_ of _TOTAL_ entries'),
             'infoFiltered' => __d('DataTables', '(filtered from _MAX_ total entries)')
         ]);
+
+        // -- load user config (may overwrite i18n)
+        $this->config($options);
+
+        // -- default to initColumnSearch() if user didn't specify js calls array
+        if(is_null($this->config('js.calls')))
+        {
+            $this->config('js.calls', ['initColumnSearch']);
+        }
 
         return $this;
     }
