@@ -14,14 +14,23 @@ function initDataTables(id, data, params) {
 /**
  * Add clickable behavior to table rows
  * Builds upon datatables-select. As soon as a row is selected, the link fires
- * Uses parameter rowLinkBase (e.g. controller + action link)
+ * Uses parameter rowLink:
+ * .url (e.g. controller + action link)
+ * .type 'href' (default) or 'load'
+ * .target selector for load
  */
-function initRowLinks(table, params)
-{
+function initRowLinks(table, params) {
     table.api().on('select', function (e, dt, type, indexes) {
-        var rowData = table.api().rows(indexes).data();
+        var row = table.api().rows(indexes);
+        var rowData = row.data();
         var id = rowData[0].id;
-        window.location.href = params.rowLinkBase + '/' + id;
+        var url = params.rowLink.url + '/' + id;
+        if (params.rowLink.type === 'load') {
+            $(params.rowLink.target).load(url);
+            table.api().rows(indexes).deselect(); // revert selection
+        } else {
+            window.location.href = url;
+        }
     });
 }
 
