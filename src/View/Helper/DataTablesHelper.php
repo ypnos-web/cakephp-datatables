@@ -64,20 +64,22 @@ class DataTablesHelper extends Helper
 
     public function draw($selector)
     {
-        // -- pass on parameters to javascript
-        $json = json_encode($this->config('js'));
-        $js = "params = $json;";
+        $config = $this->config();
 
-        // -- initialize DataTables
+        // -- pass on parameters to javascript
+        $params = json_encode($config['js']);
+        unset($config['js']);
+
+        // -- initialize dataTables config
         $json = json_encode($this->config());
+
+        // -- replace callback:<function name> with callback function
         $code = 'function (args) { return $1.apply(this, arguments); }';
         $json = preg_replace('/"callback:(.*?)"/', $code, $json);
 
-        $js .= "table=jQuery('$selector').dataTable($json);";
-
-        // -- call javascript methods
-        $js .= implode('();', $this->config('js.calls')).'();';
-
+        // -- call initializer method
+        $js = "var data = $json; var params = $params;\n";
+        $js .= "initDataTables('$selector', data, params);\n";
         return $js;
     }
 
