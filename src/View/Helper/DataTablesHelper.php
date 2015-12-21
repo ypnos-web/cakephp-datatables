@@ -73,6 +73,10 @@ class DataTablesHelper extends Helper
         // -- initialize dataTables config
         $json = json_encode($this->config());
 
+        // -- replace callback:<function name>:<parameter> with callback function
+        $code = 'function (args) { Array.prototype.push.call(arguments, "$2"); return $1.apply(this, arguments); }';
+        $json = preg_replace('/"callback:([A-Za-z0-9]*):([A-Za-z0-9]*)"/', $code, $json);
+
         // -- replace callback:<function name> with callback function
         $code = 'function (args) { return $1.apply(this, arguments); }';
         $json = preg_replace('/"callback:(.*?)"/', $code, $json);
