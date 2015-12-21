@@ -26,8 +26,6 @@ class DataTablesComponent extends Component
         'draw' => 0
     ];
 
-    protected $_isAjaxRequest = false;
-
     protected $_tableName = null;
 
     protected $_plugin = null;
@@ -38,9 +36,6 @@ class DataTablesComponent extends Component
      */
     private function _processRequest()
     {
-        // -- check whether it is an ajax call from data tables server-side plugin or a normal request
-        $this->_isAjaxRequest = $this->request->is('ajax');
-
         // -- add limit
         if( isset($this->request->query['length']) && !empty($this->request->query['length']) )
         {
