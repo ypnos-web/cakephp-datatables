@@ -1,8 +1,13 @@
 "use strict";
 
 function initDataTables(id, data, params) {
-    var elem = jQuery(id);
-    var table = elem.dataTable(data); // create new instance
+    /* Use text renderer by default. Escapes HTML. */
+    $.each(data.columns, function(i, val) {
+        if (!val.render) {
+            data.columns[i].render = $.fn.dataTable.render.text();
+        }
+    });
+    var table = $(id).dataTable(data); // create new instance
 
     // call requested initializer methods
     for (var i = 0; i < params.calls.length; i++) {
