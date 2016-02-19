@@ -32,9 +32,13 @@ class DataTablesComponent extends Component
 
     /**
      * Process query data of ajax request
-     *
+     * Alters $options if delegateOrder or delegateSearch are set
+     * In this case, the model needs to handle 'customOrder' and 'globalSearch'
+     * options.
+     * Also, the option 'countUnfiltered' will notify the model the need to
+     * provide two counts in the returned query (using Query::counter())
      */
-    private function _processRequest()
+    private function _processRequest(&$options)
     {
         // -- add limit
         if( isset($this->request->query['length']) && !empty($this->request->query['length']) )
@@ -55,7 +59,11 @@ class DataTablesComponent extends Component
             foreach($this->request->query['order'] as $item) {
                 $order[$this->request->query['columns'][$item['column']]['name']] = $item['dir'];
             }
-            $this->config('order', $order);
+            if (!empty($options['delegateOrder'])) {
+                $options['customOrder'] = $order;
+            } else {
+                $this->config('order', $order);
+            }
         }
 
         // -- add draw (an additional field of data tables plugin)
@@ -74,6 +82,11 @@ class DataTablesComponent extends Component
         // -- check table search field
         $globalSearch = (isset($this->request->query['search']['value']) ?
             $this->request->query['search']['value'] : false);
+        if (!empty($options['delegateSearch'])) {
+            $options['countUnfiltered'] = true;
+            $options['globalSearch'] = $globalSearch;
+            return; // TODO: support for deferred local search
+        }
 
         // -- add conditions for both table-wide and column search fields
         foreach($this->request->query['columns'] as $column)
@@ -105,7 +118,7 @@ class DataTablesComponent extends Component
         $this->_tableName = $table->alias();
 
         // -- get query options
-        $this->_processRequest();
+        $this->_processRequest($options);
         $data = $table->find($finder, $options);
 
         // -- record count
