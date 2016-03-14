@@ -1,5 +1,17 @@
 "use strict";
 
+function calculateHeight(id) {
+    var body = document.body,
+        html = document.documentElement;
+
+    var total = Math.max(body.scrollHeight, body.offsetHeight,
+        html.clientHeight, html.scrollHeight, html.offsetHeight),
+        footer = $('footer').outerHeight(true),
+        current = $(id).offset().top;
+
+    return total - footer - current - 140; // empirical number, table headers
+}
+
 function initDataTables(id, data, params) {
     /* Use text renderer by default. Escapes HTML. */
     $.each(data.columns, function(i, val) {
@@ -7,9 +19,16 @@ function initDataTables(id, data, params) {
             data.columns[i].render = $.fn.dataTable.render.text();
         }
     });
-    var table = $(id).dataTable(data); // create new instance
 
-    // call requested initializer methods
+    /* determine table height by default in scrolling case */
+    if (data.scrollY === true) {
+        data.height = data.scrollY = calculateHeight(id);
+    }
+
+    /* create new instance */
+    var table = $(id).dataTable(data);
+
+    /* call requested initializer methods */
     for (var i = 0; i < params.calls.length; i++) {
         var fn = window[params.calls[i]];
         fn(table, params);
