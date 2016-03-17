@@ -41,20 +41,17 @@ class DataTablesComponent extends Component
     private function _processRequest(&$options)
     {
         // -- add limit
-        if( isset($this->request->query['length']) && !empty($this->request->query['length']) )
-        {
+        if (!empty($this->request->query['length'])) {
             $this->config('length', $this->request->query['length']);
         }
 
         // -- add offset
-        if( isset($this->request->query['start']) && !empty($this->request->query['start']) )
-        {
+        if (!empty($this->request->query['start'])) {
             $this->config('start', (int)$this->request->query['start']);
         }
 
         // -- add order
-        if( isset($this->request->query['order']) && !empty($this->request->query['order']) )
-        {
+        if (!empty($this->request->query['order'])) {
             $order = $this->config('order');
             foreach($this->request->query['order'] as $item) {
                 $order[$this->request->query['columns'][$item['column']]['name']] = $item['dir'];
@@ -66,22 +63,17 @@ class DataTablesComponent extends Component
             }
         }
 
-        // -- add draw (an additional field of data tables plugin)
-        if( isset($this->request->query['draw']) && !empty($this->request->query['draw']) )
-        {
+        // -- add draw (pass-through so dataTables knows the request order)
+        if (!empty($this->request->query['draw'])) {
             $this->_viewVars['draw'] = (int)$this->request->query['draw'];
         }
 
         // -- don't support any search if columns data missing
-        if( !isset($this->request->query['columns']) ||
-            empty($this->request->query['columns']) )
-        {
+        if (empty($this->request->query['columns']))
             return;
-        }
 
         // -- check table search field
-        $globalSearch = (isset($this->request->query['search']['value']) ?
-            $this->request->query['search']['value'] : false);
+        $globalSearch = $this->request->query['search']['value'] ?? false;
         if (!empty($options['delegateSearch'])) {
             $options['countUnfiltered'] = true;
             $options['globalSearch'] = $globalSearch;
@@ -89,17 +81,15 @@ class DataTablesComponent extends Component
         }
 
         // -- add conditions for both table-wide and column search fields
-        foreach($this->request->query['columns'] as $column)
-        {
-            if( $globalSearch && $column['searchable'] == 'true' ) {
-                $this->_addCondition( $column['name'], $globalSearch, 'or' );
+        foreach ($this->request->query['columns'] as $column) {
+            if ($globalSearch && $column['searchable'] == 'true') {
+                $this->_addCondition($column['name'], $globalSearch, 'or');
             }
             $localSearch = $column['search']['value'];
-            if( !empty($localSearch) ) {
-                $this->_addCondition( $column['name'], $column['search']['value'] );
+            if (!empty($localSearch)) {
+                $this->_addCondition($column['name'], $column['search']['value']);
             }
         }
-
     }
 
     /**
@@ -112,7 +102,6 @@ class DataTablesComponent extends Component
      */
     public function find($tableName, $finder = 'all', array $options = [])
     {
-
         // -- get table object
         $table = TableRegistry::get($tableName);
         $this->_tableName = $table->alias();
@@ -126,8 +115,8 @@ class DataTablesComponent extends Component
 
         // -- filter result
         $data->where($this->config('conditionsAnd'));
-        foreach($this->config('matching') as $association => $where) {
-            $data->matching( $association, function ($q) use ($where) {
+        foreach ($this->config('matching') as $association => $where) {
+            $data->matching($association, function ($q) use ($where) {
                 return $q->where($where);
             });
         };
@@ -136,11 +125,11 @@ class DataTablesComponent extends Component
         $this->_viewVars['recordsFiltered'] = $data->count();
 
         // -- add limit
-        $data->limit( $this->config('length') );
-        $data->offset( $this->config('start') );
+        $data->limit($this->config('length'));
+        $data->offset($this->config('start'));
 
         // -- sort
-        $data->order( $this->config('order') );
+        $data->order($this->config('order'));
 
         // -- set all view vars to view and serialize array
         $this->_setViewVars();
@@ -148,19 +137,15 @@ class DataTablesComponent extends Component
 
     }
 
-    private function _getController()
-    {
-        return $this->_registry->getController();
-    }
-
     private function _setViewVars()
     {
         $_serialize = [];
-        foreach($this->_viewVars as $field => $value) {
+        foreach ($this->_viewVars as $field => $value) {
             $_serialize[] = $field;
         }
-        $this->_getController()->set($this->_viewVars);
-        $this->_getController()->set('_serialize', $_serialize);
+        $controller = $this->_registry->getController();
+        $controller->set($this->_viewVars);
+        $controller->set('_serialize', $_serialize);
     }
 
     private function _addCondition($column, $value, $type = 'and')
@@ -168,13 +153,13 @@ class DataTablesComponent extends Component
         $right = ($this->config('prefixSearch') ? "$value%" : "%$value%");
         $condition = ["$column LIKE" => $right];
 
-        if( $type === 'or' ) {
+        if ($type === 'or') {
             $this->config('conditionsOr', $condition); // merges
             return;
         }
 
         list($association, $field) = explode('.', $column);
-        if( $this->_tableName == $association) {
+        if ($this->_tableName == $association) {
             $this->config('conditionsAnd', $condition); // merges
         } else {
             $this->config('matching', [$association => $condition]); // merges
