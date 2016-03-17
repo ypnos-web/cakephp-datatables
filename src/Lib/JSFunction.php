@@ -31,11 +31,16 @@ class JSFunction implements \JsonSerializable
      */
     protected $hash;
 
-    function __construct(string $name, array $params = [])
+    /**
+     * JSFunction constructor.
+     * @param string $name Name of Javascript function to call
+     * @param array $args Optional array of arguments to be passed when calling
+     */
+    function __construct(string $name, array $args = [])
     {
         $code = 'function (args) { ';
-        foreach ($params as $p) {
-            $arg = json_encode($p);
+        foreach ($args as $a) {
+            $arg = json_encode($a);
             $code .= "Array.prototype.push.call(arguments, $arg);";
         }
         $code .= "return $name.apply(this, arguments); }";
