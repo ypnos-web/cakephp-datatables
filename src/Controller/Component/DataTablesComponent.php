@@ -139,11 +139,11 @@ class DataTablesComponent extends Component
 
     private function _setViewVars()
     {
-        $_serialize = [];
-        foreach ($this->_viewVars as $field => $value) {
-            $_serialize[] = $field;
-        }
         $controller = $this->_registry->getController();
+
+        $_serialize = $controller->viewVars['_serialize'] ?? [];
+        $_serialize = array_merge($_serialize, array_keys($this->_viewVars));
+
         $controller->set($this->_viewVars);
         $controller->set('_serialize', $_serialize);
     }
