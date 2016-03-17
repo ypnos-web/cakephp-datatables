@@ -22,7 +22,12 @@ function initDataTables(id, data) {
 
     /* determine table height by default in scrolling case */
     if (data.scrollY === true) {
-        data.height = data.scrollY = calculateHeight(id);
+        var height = calculateHeight(id);
+        if (height > 100) {
+            data.height = data.scrollY = height;
+        } else { // not enough space or window already scrolling
+            delete data.scrollY; // disable scrollY
+        }
     }
 
     /* create new instance */
