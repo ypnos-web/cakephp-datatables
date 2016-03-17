@@ -2,9 +2,8 @@
 namespace DataTables\View\Helper;
 
 use Cake\View\Helper;
-use Cake\View\View;
-use Cake\ORM\Query;
 use Cake\View\StringTemplateTrait;
+use DataTables\Lib\JSFunction;
 
 /**
  * DataTables helper
@@ -71,15 +70,7 @@ class DataTablesHelper extends Helper
         unset($config['js']);
 
         // -- initialize dataTables config
-        $json = json_encode($this->config());
-
-        // -- replace callback:<function name>:<parameter> with callback function
-        $code = 'function (args) { Array.prototype.push.call(arguments, "$2"); return $1.apply(this, arguments); }';
-        $json = preg_replace('/"callback:([A-Za-z0-9]*):([A-Za-z0-9]*)"/', $code, $json);
-
-        // -- replace callback:<function name> with callback function
-        $code = 'function (args) { return $1.apply(this, arguments); }';
-        $json = preg_replace('/"callback:(.*?)"/', $code, $json);
+        $json = JSFunction::resolve(json_encode($this->config()));
 
         // -- call initializer method
         $js = "var data = $json; var params = $params;\n";
