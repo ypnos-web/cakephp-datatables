@@ -61,6 +61,17 @@ class DataTablesHelper extends Helper
         return $this;
     }
 
+    /**
+     * Return a Javascript function wrapper to be used in DataTables configuration
+     * @param string $name Name of Javascript function to call
+     * @param array $args Optional array of arguments to be passed when calling
+     * @return JSFunction
+     */
+    public function callback(string $name, array $args = []) : JSFunction
+    {
+        return new JSFunction($name, $args);
+    }
+
     public function draw($selector)
     {
         $config = $this->config();
