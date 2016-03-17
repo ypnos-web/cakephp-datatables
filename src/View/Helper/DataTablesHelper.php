@@ -21,10 +21,6 @@ class DataTablesHelper extends Helper
         'serverSide' => true,
         'deferRender' => true,
         'dom' => '<<"row"<"col-sm-4"i><"col-sm-8"lp>>rt>',
-        'js' => [
-            'calls' => null,
-            'delay' => 600,
-        ],
     ];
 
     public function init(array $options = [])
@@ -53,9 +49,9 @@ class DataTablesHelper extends Helper
         $this->config($options);
 
         // -- default to initColumnSearch() if user didn't specify js calls array
-        if(is_null($this->config('init')))
+        if (is_null($this->config('init')))
         {
-            $this->config('init', [$this->callback('initColumnSearch')]);
+            $this->config('init', [$this->callback('initColumnSearch', [600])]);
         }
 
         return $this;
