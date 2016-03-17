@@ -125,8 +125,10 @@ class DataTablesComponent extends Component
         $this->_viewVars['recordsFiltered'] = $data->count();
 
         // -- add limit
-        $data->limit($this->config('length'));
-        $data->offset($this->config('start'));
+        if ($this->config('length') > 0) { // dt might provide -1
+            $data->limit($this->config('length'));
+            $data->offset($this->config('start'));
+        }
 
         // -- sort
         $data->order($this->config('order'));
