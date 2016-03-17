@@ -12,7 +12,7 @@ function calculateHeight(id) {
     return total - footer - current - 140; // empirical number, table headers
 }
 
-function initDataTables(id, data, params) {
+function initDataTables(id, data) {
     /* Use text renderer by default. Escapes HTML. */
     $.each(data.columns, function(i, val) {
         if (!val.render) {
@@ -29,28 +29,28 @@ function initDataTables(id, data, params) {
     var table = $(id).dataTable(data);
 
     /* call requested initializer methods */
-    for (var i = 0; i < params.calls.length; i++) {
-        var fn = window[params.calls[i]];
-        fn(table, params);
+    for (var i = 0; i < data.init.length; i++) {
+        var fn = data.init[i];
+        fn(table);
     }
 }
 
 /**
  * Add clickable behavior to table rows
- * Builds upon datatables-select. As soon as a row is selected, the link fires
- * Uses parameter rowLink:
- * .url (e.g. controller + action link)
- * .type 'href' (default) or 'load'
- * .target selector for load
+ * Builds upon datatables-select. As soon as a row is selected, the link fires.
+ * The URL is appended with the id field of the row data.
+ * @param table dataTables object
+ * @param url target URL base (e.g. controller + action link)
+ * @param target optional: call $(target).load instead of href redirect
  */
-function initRowLinks(table, params) {
+function initRowLinks(table, url, target) {
     table.api().on('select', function (e, dt, type, indexes) {
         var row = table.api().rows(indexes);
         var rowData = row.data();
         var id = rowData[0].id;
-        var url = params.rowLink.url + '/' + id;
-        if (params.rowLink.type === 'load') {
-            $(params.rowLink.target).load(url);
+        url = url + '/' + id;
+        if (typeof target !== 'undefined') {
+            $(target).load(url);
             table.api().rows(indexes).deselect(); // revert selection
         } else {
             window.location.href = url;
@@ -60,9 +60,9 @@ function initRowLinks(table, params) {
 
 /**
  * Add search behavior to all search fields in column footer
- * Uses parameter 'delay' (milliseconds)
+ * @param delay Delay in ms before starting request
  */
-function initColumnSearch(table, params) {
+function initColumnSearch(table, delay) {
     table.api().columns().every(function () {
         var index = this.index();
         var lastValue = ''; // closure variable to prevent redundant AJAX calls
@@ -73,7 +73,7 @@ function initColumnSearch(table, params) {
                 // -- set search
                 table.api().column(index).search(this.value);
                 window.clearTimeout(timer);
-                timer = window.setTimeout(table.api().draw(), params.delay);
+                timer = window.setTimeout(table.api().draw(), delay);
             }
         });
     });

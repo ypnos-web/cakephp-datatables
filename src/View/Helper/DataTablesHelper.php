@@ -74,19 +74,11 @@ class DataTablesHelper extends Helper
 
     public function draw($selector)
     {
-        $config = $this->config();
-
-        // -- pass on parameters to javascript
-        $params = json_encode($config['js']);
-        unset($config['js']);
-
         // -- initialize dataTables config
         $json = JSFunction::resolve(json_encode($this->config()));
 
         // -- call initializer method
-        $js = "var data = $json; var params = $params;\n";
-        $js .= "initDataTables('$selector', data, params);\n";
-        return $js;
+        return "initDataTables('$selector', $json);\n";
     }
 
 }
