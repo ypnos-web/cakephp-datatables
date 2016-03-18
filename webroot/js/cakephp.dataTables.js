@@ -45,15 +45,15 @@ function initDataTables(id, data) {
  * Builds upon datatables-select. As soon as a row is selected, the link fires.
  * The URL is appended with the id field of the row data.
  * @param table dataTables object
- * @param url target URL base (e.g. controller + action link)
+ * @param urlbase target URL base (e.g. controller + action link)
  * @param target optional: call $(target).load instead of href redirect
  */
-function initRowLinks(table, url, target) {
+function initRowLinks(table, urlbase, target) {
     table.api().on('select', function (e, dt, type, indexes) {
         var row = table.api().rows(indexes);
         var rowData = row.data();
         var id = rowData[0].id;
-        url = url + '/' + id;
+        var url = urlbase + '/' + id;
         if (typeof target !== 'undefined') {
             $(target).load(url);
             table.api().rows(indexes).deselect(); // revert selection
