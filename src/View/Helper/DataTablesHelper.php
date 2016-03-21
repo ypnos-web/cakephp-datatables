@@ -28,24 +28,25 @@ class DataTablesHelper extends Helper
         $this->_templater = $this->templater();
 
         // -- load i18n
+        $foo = __d('data_tables', 'Processing...');
         $this->config('language', [
             'paginate' => [
                 'next' => '<i class="fa fa-chevron-right"></i>',
                 'previous' => '<i class="fa fa-chevron-left"></i>'
             ],
-            'processing' => __d('DataTables', 'Processing...'),
+            'processing' => __d('data_tables', 'Processing...'),
             'lengthMenu' =>
                 '<select class="form-control">' .
-                '<option value="10">' . __d('DataTables', 'Display {0} records', 10) . '</option>' .
-                '<option value="25">' . __d('DataTables', 'Display {0} records', 25) . '</option>' .
-                '<option value="50">' . __d('DataTables', 'Display {0} records', 50) . '</option>' .
-                '<option value="100">' .__d('DataTables', 'Display {0} records', 100) . '</option>' .
+                '<option value="10">' . __d('data_tables', 'Display {0} records', 10) . '</option>' .
+                '<option value="25">' . __d('data_tables', 'Display {0} records', 25) . '</option>' .
+                '<option value="50">' . __d('data_tables', 'Display {0} records', 50) . '</option>' .
+                '<option value="100">' .__d('data_tables', 'Display {0} records', 100) . '</option>' .
                 '</select>',
-            'info' => __d('DataTables', 'Showing _START_ to _END_ of _TOTAL_ entries'),
-            'infoFiltered' => __d('DataTables', '(filtered from _MAX_ total entries)'),
-            'infoEmpty' => __d('DataTables', 'No entries to show'),
-            'search' => __d('DataTables', 'Search:'),
-            'zeroRecords' => __d('DataTables', 'No matching records found'),
+            'info' => __d('data_tables', 'Showing _START_ to _END_ of _TOTAL_ entries'),
+            'infoFiltered' => __d('data_tables', '(filtered from _MAX_ total entries)'),
+            'infoEmpty' => __d('data_tables', 'No entries to show'),
+            'search' => __d('data_tables', 'Search:'),
+            'zeroRecords' => __d('data_tables', 'No matching records found'),
         ]);
 
         // -- load user config (may overwrite i18n)
