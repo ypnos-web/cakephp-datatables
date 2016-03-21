@@ -108,6 +108,13 @@ class DataTablesComponent extends Component
 
         // -- get query options
         $this->_processRequest($options);
+
+        // -- remove default ordering
+        if (!empty($this->config('order'))) {
+            unset($options['order']);
+        }
+
+        // -- fetch data from table
         $data = $table->find($finder, $options);
 
         // -- record count
