@@ -1,6 +1,6 @@
 {
     "name": "ypnos-web/cakephp-datatables",
-    "description": "Use jQuery dataTables for CakePHP 3",
+    "description": "jQuery DataTables for CakePHP 3",
     "homepage": "https://github.com/ypnos-web/cakephp-datatables",
     "type": "cakephp-plugin",
     "keywords": ["cakephp", "datatables"],
@@ -18,12 +18,8 @@
         }
     ],
     "require": {
-        "php": ">=5.4.16",
+        "php": ">=7.0",
         "cakephp/cakephp": "~3.0"
-    },
-    "suggest": {
-        "phpunit/phpunit": "Allows automated tests to be run without system-wide install.",
-        "cakephp/cakephp-codesniffer": "Allows to check the code against the coding standards used in CakePHP."
     },
     "autoload": {
         "psr-4": {
