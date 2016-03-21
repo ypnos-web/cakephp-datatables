@@ -1,0 +1,43 @@
+# German translation of DataTables plugin
+# Copyright 2016 Johannes Jordan <johannes.jordan@physiologie.uni-freiburg.de>
+# See https://datatables.net/plug-ins/i18n/German
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2016-03-21 15:13+0000\n"
+"Last-Translator: Johannes Jordan <johannes.jordan@physiologie.uni-freiburg.de>\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: View/Helper/DataTablesHelper.php:36
+msgid "Processing..."
+msgstr "Bitte warten..."
+
+#: View/Helper/DataTablesHelper.php:39;40;41;42
+msgid "Display {0} records"
+msgstr "Zeige {0} Einträge"
+
+#: View/Helper/DataTablesHelper.php:44
+msgid "Showing _START_ to _END_ of _TOTAL_ entries"
+msgstr "_START_ bis _END_ von _TOTAL_ Einträgen"
+
+#: View/Helper/DataTablesHelper.php:45
+msgid "(filtered from _MAX_ total entries)"
+msgstr "(gefiltert von _MAX_ Einträgen)"
+
+#: View/Helper/DataTablesHelper.php:46
+msgid "No entries to show"
+msgstr "Keine Einträge"
+
+#: View/Helper/DataTablesHelper.php:47
+msgid "Search:"
+msgstr "Suche:"
+
+#: View/Helper/DataTablesHelper.php:48
+msgid "No matching records found"
+msgstr "Keine Einträge vorhanden."
+
