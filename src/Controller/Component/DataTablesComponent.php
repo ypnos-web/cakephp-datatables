@@ -127,7 +127,9 @@ class DataTablesComponent extends Component
                 return $q->where($where);
             });
         };
-        $data->andWhere(['or' => $this->config('conditionsOr')]);
+        if (!empty($this->config('conditionsOr'))) {
+            $data->where(['or' => $this->config('conditionsOr')]);
+        }
 
         $this->_viewVars['recordsFiltered'] = $data->count();
 
