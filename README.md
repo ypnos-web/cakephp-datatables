@@ -55,14 +55,20 @@ For example in your AppController:
 
 Include jQuery and jQuery DataTables scripts first and then the dataTables logic:
 
-    echo $this->Html->script('*PATH*/jquery.min.js');
-    echo $this->Html->script('*PATH*/jquery.dataTables.min.js');
-    echo $this->Html->script('*PATH*/dataTables.bootstrap.min.js'); (Optional)
-    echo $this->Html->script('DataTables.cakephp.dataTables.js');
+```php
+$this->Html->script([
+	'*PATH*/jquery.min.js',
+	'*PATH*/jquery.dataTables.min.js',
+	'*PATH*/dataTables.bootstrap.min.js', // optional
+	'DataTables.cakephp.dataTables.js',
+], ['block' => true]);
+```
 
 Include dataTables css:
 
-    echo $this->Html->css('*PATH*/dataTables.bootstrap.css');
+```php
+$this->Html->css('*PATH*/dataTables.bootstrap.css', ['block' => true]);
+```
 
 If you don't use Bootstrap, see the DataTables documentation for which files to include instead. For FontAwesome, you might also want to have a look at [this](https://www.datatables.net/blog/2014-06-06).
 
@@ -152,7 +158,7 @@ To make this work, we can replace our regular find operation with the wrapper pr
 
 ```php
 $data = $this->DataTables->find('Users', 'all', [
-	'contain' => ['Departments']
+	'contain' => ['Departments'],
 	'order' => ['username' => 'asc']
 ]);
 $this->set('data', $data);
