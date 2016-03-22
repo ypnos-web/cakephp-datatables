@@ -52,12 +52,6 @@ class DataTablesHelper extends Helper
         // -- load user config (may overwrite i18n)
         $this->config($options);
 
-        // -- default to initColumnSearch() if user didn't specify js calls array
-        if (is_null($this->config('init')))
-        {
-            $this->config('init', [$this->callback('initColumnSearch', [600])]);
-        }
-
         return $this;
     }
 
