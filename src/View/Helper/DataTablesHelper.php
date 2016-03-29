@@ -12,8 +12,7 @@ use DataTables\Lib\JSFunction;
  */
 class DataTablesHelper extends Helper
 {
-
-    use StringTemplateTrait;
+    public $helpers = ['Html'];
 
     protected $_defaultConfig = [
         'searching' => true,
@@ -22,10 +21,40 @@ class DataTablesHelper extends Helper
         'deferRender' => true,
     ];
 
+    /**
+     * Return a Javascript function wrapper to be used in DataTables configuration
+     * @param string $name Name of Javascript function to call
+     * @param array $args Optional array of arguments to be passed when calling
+     * @return JSFunction
+     */
+    public function callback(string $name, array $args = []) : JSFunction
+    {
+        return new JSFunction($name, $args);
+    }
+
+
+    /**
+     * Return a table with dataTables overlay
+     * @param $id: DOM id of the table
+     * @param $dtOptions: Options for DataTables
+     * @param $htmlOptions: Options for the table, e.g. CSS classes
+     * @return string containing a <table> and a <script> element
+     */
+    public function table(string $id = 'datatable', array $dtOptions = [], array $htmlOptions = []) : string
+    {
+        $htmlOptions = array_merge($htmlOptions,  [
+            'id' => $id,
+            'class' => 'dataTable '.($htmlOptions['class'] ?? ''),
+        ]);
+        $table = $this->Html->tag('table', '', $htmlOptions);
+
+        $code = $this->init($dtOptions)->draw("#$id");
+
+        return $table.$this->Html->scriptBlock($code);
+    }
+
     public function init(array $options = [])
     {
-        $this->_templater = $this->templater();
-
         // -- load i18n (defaults from datatables.net/reference/option/language)
         $this->config('language', [
             'emptyTable' => __d('data_tables', 'No data available in table'),
@@ -52,17 +81,6 @@ class DataTablesHelper extends Helper
         $this->config($options);
 
         return $this;
-    }
-
-    /**
-     * Return a Javascript function wrapper to be used in DataTables configuration
-     * @param string $name Name of Javascript function to call
-     * @param array $args Optional array of arguments to be passed when calling
-     * @return JSFunction
-     */
-    public function callback(string $name, array $args = []) : JSFunction
-    {
-        return new JSFunction($name, $args);
     }
 
     public function draw($selector)
