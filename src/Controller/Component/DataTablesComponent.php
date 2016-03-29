@@ -31,14 +31,50 @@ class DataTablesComponent extends Component
     protected $_plugin = null;
 
     /**
-     * Process query data of ajax request
-     * Alters $options if delegateOrder or delegateSearch are set
-     * In this case, the model needs to handle 'customOrder' and 'globalSearch'
-     * options.
-     * Also, the option 'countUnfiltered' will notify the model the need to
-     * provide two counts in the returned query (using Query::counter())
+     * Process draw option (pass-through)
      */
-    private function _processRequest(&$options)
+    private function _draw()
+    {
+        if (empty($this->request->query['draw']))
+            return;
+
+        $this->_viewVars['draw'] = (int)$this->request->query['draw'];
+    }
+
+    /**
+     * Process query data of ajax request regarding order
+     * Alters $options if delegateOrder is set
+     * In this case, the model needs to handle the 'customOrder' option.
+     * @param $options: Query options from the request
+     */
+    private function _order(array &$options)
+    {
+        if (empty($this->request->query['order']))
+            return;
+
+        // -- add custom order
+        $order = $this->config('order');
+        foreach($this->request->query['order'] as $item) {
+            $order[$this->request->query['columns'][$item['column']]['name']] = $item['dir'];
+        }
+        if (!empty($options['delegateOrder'])) {
+            $options['customOrder'] = $order;
+        } else {
+            $this->config('order', $order);
+        }
+
+        // -- remove default ordering as we have a custom one
+        unset($options['order']);
+    }
+
+    /**
+     * Process query data of ajax request regarding filtering
+     * Alters $options if delegateSearch is set
+     * In this case, the model needs to handle the 'globalSearch' option.
+     * @param $options: Query options from the request
+     * @return: returns true if additional filtering takes place
+     */
+    private function _filter(array &$options) : bool
     {
         // -- add limit
         if (!empty($this->request->query['length'])) {
@@ -50,46 +86,31 @@ class DataTablesComponent extends Component
             $this->config('start', (int)$this->request->query['start']);
         }
 
-        // -- add order
-        if (!empty($this->request->query['order'])) {
-            $order = $this->config('order');
-            foreach($this->request->query['order'] as $item) {
-                $order[$this->request->query['columns'][$item['column']]['name']] = $item['dir'];
-            }
-            if (!empty($options['delegateOrder'])) {
-                $options['customOrder'] = $order;
-            } else {
-                $this->config('order', $order);
-            }
-        }
-
-        // -- add draw (pass-through so dataTables knows the request order)
-        if (!empty($this->request->query['draw'])) {
-            $this->_viewVars['draw'] = (int)$this->request->query['draw'];
-        }
-
         // -- don't support any search if columns data missing
         if (empty($this->request->query['columns']))
-            return;
+            return false;
 
         // -- check table search field
         $globalSearch = $this->request->query['search']['value'] ?? false;
-        if (!empty($options['delegateSearch'])) {
-            $options['countUnfiltered'] = true;
+        if ($globalSearch && !empty($options['delegateSearch'])) {
             $options['globalSearch'] = $globalSearch;
-            return; // TODO: support for deferred local search
+            return true; // TODO: support for deferred local search
         }
 
         // -- add conditions for both table-wide and column search fields
+        $filters = false;
         foreach ($this->request->query['columns'] as $column) {
             if ($globalSearch && $column['searchable'] == 'true') {
                 $this->_addCondition($column['name'], $globalSearch, 'or');
+                $filters = true;
             }
             $localSearch = $column['search']['value'];
             if (!empty($localSearch)) {
                 $this->_addCondition($column['name'], $column['search']['value']);
+                $filters = true;
             }
         }
+        return $filters;
     }
 
     /**
@@ -102,35 +123,45 @@ class DataTablesComponent extends Component
      */
     public function find($tableName, $finder = 'all', array $options = [])
     {
+        $delegateSearch = (!empty($options['delegateSearch']));
+
         // -- get table object
         $table = TableRegistry::get($tableName);
         $this->_tableName = $table->alias();
 
-        // -- get query options
-        $this->_processRequest($options);
+        // -- process draw & ordering options
+        $this->_draw();
+        $this->_order($options);
 
-        // -- remove default ordering
-        if (!empty($this->config('order'))) {
-            unset($options['order']);
-        }
-
-        // -- fetch data from table
+        // -- call table's finder w/o filters
         $data = $table->find($finder, $options);
 
-        // -- record count
+        // -- retrieve total count
         $this->_viewVars['recordsTotal'] = $data->count();
 
-        // -- filter result
-        $data->where($this->config('conditionsAnd'));
-        foreach ($this->config('matching') as $association => $where) {
-            $data->matching($association, function ($q) use ($where) {
-                return $q->where($where);
-            });
-        };
-        if (!empty($this->config('conditionsOr'))) {
-            $data->where(['or' => $this->config('conditionsOr')]);
+        // -- process filter options
+        $filters = $this->_filter($options);
+
+        // -- apply filters
+        if ($filters) {
+            if ($delegateSearch)
+            {
+                // call finder again to process filters (provided in $options)
+                $data = $table->find($finder, $options);
+            } else {
+                $data->where($this->config('conditionsAnd'));
+                foreach ($this->config('matching') as $association => $where) {
+                    $data->matching($association, function ($q) use ($where) {
+                        return $q->where($where);
+                    });
+                };
+                if (!empty($this->config('conditionsOr'))) {
+                    $data->where(['or' => $this->config('conditionsOr')]);
+                }
+            }
         }
 
+        // -- retrieve filtered count
         $this->_viewVars['recordsFiltered'] = $data->count();
 
         // -- add limit
