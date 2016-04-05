@@ -34,6 +34,8 @@ function initDataTables(id, data) {
     var table = $(id).dataTable(data);
 
     /* call requested initializer methods */
+    if (typeof(data.init) === 'undefined')
+        return;
     for (var i = 0; i < data.init.length; i++) {
         var fn = data.init[i];
         fn(table);
