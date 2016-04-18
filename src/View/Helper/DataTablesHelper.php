@@ -88,7 +88,7 @@ class DataTablesHelper extends Helper
         $json = CallbackFunction::resolve(json_encode($this->config()));
 
         // -- call initializer method
-        return "initDataTables('$selector', $json);\n";
+        return "dt.initDataTables('$selector', $json);\n";
     }
 
 }

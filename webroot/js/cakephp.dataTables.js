@@ -1,6 +1,11 @@
 "use strict";
 
-function calculateHeight(id) {
+var dt = dt || {}; // initialize namespace
+
+dt.init = dt.init || {}; // namespace for initializers
+dt.render = dt.render || {}; // namespace for renderers
+
+dt.calculateHeight = function (id) {
     var body = document.body,
         html = document.documentElement;
 
@@ -10,11 +15,11 @@ function calculateHeight(id) {
         current = $(id).offset().top;
 
     return total - footer - current - 140; // empirical number, table headers
-}
+};
 
-function initDataTables(id, data) {
+dt.initDataTables = function (id, data) {
     /* Use text renderer by default. Escapes HTML. */
-    $.each(data.columns, function(i, val) {
+    $.each(data.columns, function (i, val) {
         if (!val.render) {
             data.columns[i].render = $.fn.dataTable.render.text();
         }
@@ -22,7 +27,7 @@ function initDataTables(id, data) {
 
     /* determine table height by default in scrolling case */
     if (data.scrollY === true) {
-        var height = calculateHeight(id);
+        var height = dt.calculateHeight(id);
         if (height > 100) {
             data.height = data.scrollY = height;
         } else { // not enough space or window already scrolling
@@ -40,7 +45,7 @@ function initDataTables(id, data) {
         var fn = data.init[i];
         fn(table);
     }
-}
+};
 
 /**
  * Add clickable behavior to table rows
@@ -50,7 +55,7 @@ function initDataTables(id, data) {
  * @param urlbase target URL base (e.g. controller + action link)
  * @param target optional: call $(target).load instead of href redirect
  */
-function initRowLinks(table, urlbase, target) {
+dt.init.rowLinks = function (table, urlbase, target) {
     table.api().on('select', function (e, dt, type, indexes) {
         var row = table.api().rows(indexes);
         var rowData = row.data();
@@ -63,13 +68,13 @@ function initRowLinks(table, urlbase, target) {
             window.location.href = url;
         }
     });
-}
+};
 
 /**
  * Add search behavior to all search fields in column footer
  * @param delay Delay in ms before starting request
  */
-function initColumnSearch(table, delay) {
+dt.init.columnSearch = function (table, delay) {
     table.api().columns().every(function () {
         var index = this.index();
         var lastValue = ''; // closure variable to prevent redundant AJAX calls
@@ -84,16 +89,16 @@ function initColumnSearch(table, delay) {
             }
         });
     });
-}
+};
 
 /**
  * Function reset
  *
  */
-function resetColumnSearch(table) {
+dt.resetColumnSearch = function (table) {
     table.api().columns().every(function () {
         this.search('');
         $('input, select', this.footer()).val('');
     });
     table.api().draw();
-}
+};
