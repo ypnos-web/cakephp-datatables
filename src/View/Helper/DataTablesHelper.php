@@ -2,8 +2,7 @@
 namespace DataTables\View\Helper;
 
 use Cake\View\Helper;
-use Cake\View\StringTemplateTrait;
-use DataTables\Lib\JSFunction;
+use DataTables\Lib\CallbackFunction;
 
 /**
  * DataTables helper
@@ -25,11 +24,11 @@ class DataTablesHelper extends Helper
      * Return a Javascript function wrapper to be used in DataTables configuration
      * @param string $name Name of Javascript function to call
      * @param array $args Optional array of arguments to be passed when calling
-     * @return JSFunction
+     * @return CallbackFunction
      */
-    public function callback(string $name, array $args = []) : JSFunction
+    public function callback(string $name, array $args = []) : CallbackFunction
     {
-        return new JSFunction($name, $args);
+        return new CallbackFunction($name, $args);
     }
 
 
@@ -86,7 +85,7 @@ class DataTablesHelper extends Helper
     public function draw($selector)
     {
         // -- initialize dataTables config
-        $json = JSFunction::resolve(json_encode($this->config()));
+        $json = CallbackFunction::resolve(json_encode($this->config()));
 
         // -- call initializer method
         return "initDataTables('$selector', $json);\n";

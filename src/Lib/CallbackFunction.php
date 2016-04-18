@@ -6,7 +6,7 @@
 
 namespace DataTables\Lib;
 
-class JSFunction implements \JsonSerializable
+class CallbackFunction implements \JsonSerializable
 {
 
     /**
@@ -32,22 +32,35 @@ class JSFunction implements \JsonSerializable
     protected $hash;
 
     /**
-     * JSFunction constructor.
+     * CallbackFunction constructor.
      * @param string $name Name of Javascript function to call
      * @param array $args Optional array of arguments to be passed when calling
      */
     function __construct(string $name, array $args = [])
     {
-        $code = 'function (args) { ';
-        foreach ($args as $a) {
-            $arg = json_encode($a);
-            $code .= "Array.prototype.push.call(arguments, $arg);";
+        if (empty($args)) {
+            $code = $name;
+        } else {
+            $code = 'function (args) { ';
+            foreach ($args as $a) {
+                $arg = json_encode($a);
+                $code .= "Array.prototype.push.call(arguments, $arg);";
+            }
+            $code .= "return $name.apply(this, arguments); }";
         }
-        $code .= "return $name.apply(this, arguments); }";
 
-        // use sizeof placeholders as prefix to ensure uniqueness
+        $this->setHash($code);
+    }
+
+    /**
+     * Set hash for this wrapper and register in placeholder list
+     * @param $code: payload
+     */
+    protected function setHash(string $code)
+    {
         $this->hash = md5($code);
-        self::$_placeholders["\"$this->hash\""] = $code;
+        // use parenthesis as this is how it will show up in json
+        self::$_placeholders['"'.$this->hash.'"'] = $code;
     }
 
     /**
@@ -56,7 +69,7 @@ class JSFunction implements \JsonSerializable
      */
     function code() : string
     {
-        return self::$_placeholders["\"$this->hash\""];
+        return self::$_placeholders['"'.$this->hash.'"'];
     }
 
     /**
