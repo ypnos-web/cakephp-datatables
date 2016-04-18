@@ -131,6 +131,33 @@ dt.init.columnSearch = function (table, delay) {
 };
 
 /**
+ * Append an element property to the data send to server in a datatables request
+ * @param data The data object sent to the server
+ * @param settings DataTables settings object
+ * @param target Name of the object property to set
+ * @param source Source for target value: { selector, property, default }
+ * @returns The manipulated data object with new property
+ */
+dt.appendProperty = function (data, settings, target, source)
+{
+    var value = $(source.selector).prop(source.property);
+    data[target] = (typeof(value) === 'undefined' ? source.default : value);
+    return data;
+};
+
+/**
+ * Escapes HTML characters
+ * Inspired by dataTable.render.text()
+ * Should be used in all render functions!
+ */
+dt.h = function (d)
+{
+    return typeof d === 'string' ?
+        d.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') :
+        d;
+};
+
+/**
  * Function reset
  *
  */
