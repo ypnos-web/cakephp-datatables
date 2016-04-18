@@ -131,6 +131,23 @@ dt.init.columnSearch = function (table, delay) {
 };
 
 /**
+ * Render a date as localized string
+ * @param data The data for the cell (based on columns.data)
+ * @param type 'filter', 'display', 'type' or 'sort'
+ * @param full The full data source for the row
+ * @param meta Object containing additional information about the cell
+ * @returns Manipulated cell data
+ */
+dt.render.date = function (data, type, full, meta)
+{
+    if (type === 'display') {
+        var date = new Date(data);
+        return date.toLocaleDateString(document.documentElement.lang);
+    }
+    return data;
+};
+
+/**
  * Append an element property to the data send to server in a datatables request
  * @param data The data object sent to the server
  * @param settings DataTables settings object
