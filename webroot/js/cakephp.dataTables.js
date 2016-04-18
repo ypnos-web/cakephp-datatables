@@ -48,6 +48,45 @@ dt.initDataTables = function (id, data) {
 };
 
 /**
+ * Delay search trigger for DataTables input field
+ * @param table dataTables object
+ * @param minSearchCharacters minimum of characters necessary to trigger search
+ */
+dt.init.delayedSearch = function (table, minSearchCharacters) {
+    /* code taken from http://stackoverflow.com/a/23897722/21974 */
+    // Grab the datatables input box and alter how it is bound to events
+    var id = table.api().table().node().id + '_filter';
+    $('#' + id + ' input')
+        .unbind() // Unbind previous default bindings
+        .bind("input", function (e) { // Bind our desired behavior
+            // If enough characters, or the user pressed ENTER, search
+            if (this.value.length >= minSearchCharacters || e.keyCode == 13) {
+                // Call the API search function
+                table.api().search(this.value).draw();
+            }
+            // Ensure we clear the search if they backspace far enough
+            if (this.value == "") {
+                table.api().search("").draw();
+            }
+        });
+};
+
+/**
+ * Let an element change trigger a search (e.g. a custom input box)
+ * @param table dataTables object
+ * @param sender jQuery selector for the sending object
+ */
+dt.init.searchTrigger = function (table, sender)
+{
+    $(document).on('change', sender, function () {
+        var value = table.search();
+        if (!value) // no search results displayed, need no update
+            return;
+        table.search(value).draw();
+    });
+};
+
+/**
  * Add clickable behavior to table rows
  * Builds upon datatables-select. As soon as a row is selected, the link fires.
  * The URL is appended with the id field of the row data.
