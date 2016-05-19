@@ -58,16 +58,15 @@ dt.init.delayedSearch = function (table, minSearchCharacters) {
     var id = table.api().table().node().id + '_filter';
     $('#' + id + ' input')
         .unbind() // Unbind previous default bindings
-        .bind("input", function (e) { // Bind our desired behavior
-            // If enough characters, or the user pressed ENTER, search
-            if (this.value.length >= minSearchCharacters || e.keyCode == 13) {
-                // Call the API search function
+        .bind("input", function (e) { // Bind for field changes
+            // If enough characters, or search cleared with backspace
+            if (this.value.length >= minSearchCharacters || !this.value) {
                 table.api().search(this.value).draw();
             }
-            // Ensure we clear the search if they backspace far enough
-            if (this.value == "") {
-                table.api().search("").draw();
-            }
+        })
+        .bind("keydown", function (e) { // Bind for key presses
+            if (e.keyCode == 13) // Enter key
+                table.api().search(this.value).draw();
         });
 };
 
