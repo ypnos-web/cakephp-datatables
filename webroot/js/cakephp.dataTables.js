@@ -5,18 +5,6 @@ var dt = dt || {}; // initialize namespace
 dt.init = dt.init || {}; // namespace for initializers
 dt.render = dt.render || {}; // namespace for renderers
 
-dt.calculateHeight = function (id) {
-    var body = document.body,
-        html = document.documentElement;
-
-    var total = Math.max(body.scrollHeight, body.offsetHeight,
-        html.clientHeight, html.scrollHeight, html.offsetHeight),
-        footer = $('footer').outerHeight(true),
-        current = $(id).offset().top;
-
-    return total - footer - current - 140; // empirical number, table headers
-};
-
 dt.initDataTables = function (id, data) {
     /* Use text renderer by default. Escapes HTML. */
     $.each(data.columns, function (i, val) {
@@ -24,16 +12,6 @@ dt.initDataTables = function (id, data) {
             data.columns[i].render = $.fn.dataTable.render.text();
         }
     });
-
-    /* determine table height by default in scrolling case */
-    if (data.scrollY === true) {
-        var height = dt.calculateHeight(id);
-        if (height > 100) {
-            data.height = data.scrollY = height;
-        } else { // not enough space or window already scrolling
-            delete data.scrollY; // disable scrollY
-        }
-    }
 
     /* create new instance */
     var table = $(id).dataTable(data);
@@ -126,6 +104,66 @@ dt.init.columnSearch = function (table, delay) {
                 timer = window.setTimeout(table.api().draw(), delay);
             }
         });
+    });
+};
+
+/**
+ * Resize table to perfectly fit into (remainder of) window
+ * This works best if you set 'scrollY' to your minimum desired height
+ * If you do not want to use scrollY, use a fixed height on the table element
+ * Body margin is considered for fixed footer, body padding for fixed header
+ * This installs a listener for 'fullscreenToggle' on the table
+ * @param table dataTables object
+ * @param offset Offset to subtract from calculated optimal height (fine-tuning)
+ * @param fullscreen true to fit into whole window height (default: remaining)
+ */
+dt.init.fitIntoWindow = function (table, offset, fullscreen) {
+    var wrapper = $('#' + table.attr('id') + '_wrapper');
+    var body = wrapper.find('.dataTables_scrollBody');
+    if (body.length == 0) // neither scrollX / scrollY used
+        body = table;
+
+    // use initial height as minimum height
+    var minHeight = body.outerHeight();
+
+    // store fullscreen state in table
+    table.data('fullscreen', fullscreen);
+
+    var resizer = function () {
+        var total = window.innerHeight;
+        if (table.data('fullscreen') || (wrapper.offset().top + minHeight > total)) {
+            /* fit table in window minus body padding (fixed header) */
+            total -= $('body').outerHeight(false) - $('body').height();
+        } else {
+            /* fit table between previous content and footer (body margin) */
+            total -= wrapper.offset().top;
+            total -= $('body').outerHeight(true) - $('body').outerHeight(false);
+        }
+        /* take table decorations (e.g. info, filter elements) into account */
+        var self = wrapper.outerHeight(true) - body.outerHeight(false);
+
+        /* set height and propagate change */
+        body.css('height', total - self - offset + "px");
+        if (typeof(table.api().scroller) !== 'undefined')
+            table.api().scroller.measure(true);
+        else
+            table.api().draw();
+    };
+
+    // initial call
+    resizer();
+
+    // call on window resize
+    var resizeTimer;
+    $(window).on('resize', function (e) {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(resizer, 250);
+    });
+
+    // allow toggling fullscreen mode
+    table.on('toggleFullscreen', function () {
+        table.data('fullscreen', !table.data('fullscreen'));
+        resizer();
     });
 };
 
