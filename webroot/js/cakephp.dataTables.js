@@ -144,10 +144,11 @@ dt.init.fitIntoWindow = function (table, offset, fullscreen) {
 
         /* set height and propagate change */
         body.css('height', total - self - offset + "px");
-        if (typeof(table.api().scroller) !== 'undefined')
-            table.api().scroller.measure(true);
-        else
-            table.api().draw();
+        var api = table.api();
+        if (typeof(api.scroller) !== 'undefined') {
+            api.scroller.measure(false);
+        }
+        /* note: we do not redraw as it leads to several problems. */
     };
 
     // initial call
