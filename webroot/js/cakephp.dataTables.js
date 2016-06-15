@@ -143,8 +143,13 @@ dt.init.fitIntoWindow = function (table, offset, fullscreen) {
         /* take table decorations (e.g. info, filter elements) into account */
         var self = wrapper.outerHeight(true) - body.outerHeight(false);
 
+        /* check if height changed (e.g. not on only horizontal resize) */
+        var height = total - self - offset;
+        if (body.height() === height)
+            return;
+
         /* set height and propagate change */
-        body.css('height', total - self - offset + "px");
+        body.css('height', height + "px");
         var api = table.api();
         if (typeof(api.scroller) !== 'undefined') {
             api.scroller.measure(false);
