@@ -13,16 +13,18 @@ dt.initDataTables = function (id, data) {
         }
     });
 
-    /* create new instance */
-    var table = $(id).dataTable(data);
-
     /* call requested initializer methods */
-    if (typeof(data.init) === 'undefined')
-        return;
-    for (var i = 0; i < data.init.length; i++) {
-        var fn = data.init[i];
-        fn(table);
+    if (typeof(data.init) !== 'undefined') {
+        $(id).on('preInit.dt', function () {
+            var table = $(id).dataTable(); // table jQuery object
+            for (var i = 0; i < data.init.length; i++) {
+                data.init[i](table);
+            }
+        });
     }
+
+    /* create new instance */
+    $(id).dataTable(data);
 };
 
 /**
