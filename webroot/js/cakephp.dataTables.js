@@ -35,8 +35,7 @@ dt.initDataTables = function (id, data) {
 dt.init.delayedSearch = function (table, minSearchCharacters) {
     /* code taken from http://stackoverflow.com/a/23897722/21974 */
     // Grab the datatables input box and alter how it is bound to events
-    var id = table.api().table().node().id + '_filter';
-    $('#' + id + ' input')
+    $('#' + table.attr('id') + '_filter input')
         .unbind() // Unbind previous default bindings
         .bind("input", function (e) { // Bind for field changes
             // If enough characters, or search cleared with backspace
@@ -122,7 +121,7 @@ dt.init.columnSearch = function (table, delay) {
 dt.init.fitIntoWindow = function (table, offset, fullscreen) {
     var wrapper = $('#' + table.attr('id') + '_wrapper');
     var body = wrapper.find('.dataTables_scrollBody');
-    if (body.length == 0) // neither scrollX / scrollY used
+    if (body.length === 0) // neither scrollX / scrollY used
         body = table;
 
     // use initial height as minimum height
