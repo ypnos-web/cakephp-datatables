@@ -18,7 +18,7 @@
         }
     ],
     "require": {
-        "php": ">=7.0",
+        "php": ">=5.5.9",
         "cakephp/cakephp": "~3.0"
     },
     "autoload": {
