@@ -26,7 +26,7 @@ class DataTablesHelper extends Helper
      * @param array $args Optional array of arguments to be passed when calling
      * @return CallbackFunction
      */
-    public function callback(string $name, array $args = []) : CallbackFunction
+    public function callback($name, array $args = [])
     {
         return new CallbackFunction($name, $args);
     }
@@ -39,11 +39,11 @@ class DataTablesHelper extends Helper
      * @param $htmlOptions: Options for the table, e.g. CSS classes
      * @return string containing a <table> and a <script> element
      */
-    public function table(string $id = 'datatable', array $dtOptions = [], array $htmlOptions = []) : string
+    public function table($id = 'datatable', array $dtOptions = [], array $htmlOptions = [])
     {
         $htmlOptions = array_merge($htmlOptions,  [
             'id' => $id,
-            'class' => 'dataTable ' . ($htmlOptions['class'] ?? ''),
+            'class' => 'dataTable ' . (isset($htmlOptions['class']) ? $htmlOptions['class'] : '')
         ]);
         $table = $this->Html->tag('table', '', $htmlOptions);
 

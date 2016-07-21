@@ -20,7 +20,7 @@ class CallbackFunction implements \JsonSerializable
      * @param string $json JSON-encoded data
      * @return string JSON-encoded data where hashes are replaced with javascript code
      */
-    public static function resolve(string $json) : string
+    public static function resolve($json)
     {
         return strtr($json, self::$_placeholders);
     }
@@ -36,7 +36,7 @@ class CallbackFunction implements \JsonSerializable
      * @param string $name Name of Javascript function to call
      * @param array $args Optional array of arguments to be passed when calling
      */
-    function __construct(string $name, array $args = [])
+    function __construct($name, array $args = [])
     {
         if (empty($args)) {
             $code = $name;
@@ -56,7 +56,7 @@ class CallbackFunction implements \JsonSerializable
      * Set hash for this wrapper and register in placeholder list
      * @param $code: payload
      */
-    protected function setHash(string $code)
+    protected function setHash($code)
     {
         $this->hash = md5($code);
         // use parenthesis as this is how it will show up in json
@@ -67,7 +67,7 @@ class CallbackFunction implements \JsonSerializable
      * Get code generated for this JS function call
      * @return string the generated code
      */
-    function code() : string
+    function code()
     {
         return self::$_placeholders['"'.$this->hash.'"'];
     }
