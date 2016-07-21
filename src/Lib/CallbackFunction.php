@@ -44,9 +44,9 @@ class CallbackFunction implements \JsonSerializable
             $code = 'function (args) { ';
             foreach ($args as $a) {
                 $arg = json_encode($a);
-                $code .= "Array.prototype.push.call(arguments, $arg);";
+                $code .= "Array.prototype.push.call(arguments, {$arg});";
             }
-            $code .= "return $name.apply(this, arguments); }";
+            $code .= "return {$name}.apply(this, arguments); }";
         }
 
         $this->setHash($code);

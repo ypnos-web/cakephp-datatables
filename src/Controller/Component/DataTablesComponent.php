@@ -123,7 +123,7 @@ class DataTablesComponent extends Component
      */
     public function find($tableName, $finder = 'all', array $options = [])
     {
-        $delegateSearch = (!empty($options['delegateSearch']));
+        $delegateSearch = !empty($options['delegateSearch']);
 
         // -- get table object
         $table = TableRegistry::get($tableName);
@@ -144,8 +144,7 @@ class DataTablesComponent extends Component
 
         // -- apply filters
         if ($filters) {
-            if ($delegateSearch)
-            {
+            if ($delegateSearch) {
                 // call finder again to process filters (provided in $options)
                 $data = $table->find($finder, $options);
             } else {
@@ -154,7 +153,7 @@ class DataTablesComponent extends Component
                     $data->matching($association, function ($q) use ($where) {
                         return $q->where($where);
                     });
-                };
+                }
                 if (!empty($this->config('conditionsOr'))) {
                     $data->where(['or' => $this->config('conditionsOr')]);
                 }
@@ -192,8 +191,8 @@ class DataTablesComponent extends Component
 
     private function _addCondition($column, $value, $type = 'and')
     {
-        $right = ($this->config('prefixSearch') ? "$value%" : "%$value%");
-        $condition = ["$column LIKE" => $right];
+        $right = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
+        $condition = ["{$column} LIKE" => $right];
 
         if ($type === 'or') {
             $this->config('conditionsOr', $condition); // merges

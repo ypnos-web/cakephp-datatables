@@ -43,11 +43,11 @@ class DataTablesHelper extends Helper
     {
         $htmlOptions = array_merge($htmlOptions,  [
             'id' => $id,
-            'class' => 'dataTable '.($htmlOptions['class'] ?? ''),
+            'class' => 'dataTable ' . ($htmlOptions['class'] ?? ''),
         ]);
         $table = $this->Html->tag('table', '', $htmlOptions);
 
-        $code = $this->init($dtOptions)->draw("#$id");
+        $code = $this->init($dtOptions)->draw("#{$id}");
 
         return $table.$this->Html->scriptBlock($code);
     }
@@ -88,7 +88,7 @@ class DataTablesHelper extends Helper
         $json = CallbackFunction::resolve(json_encode($this->config()));
 
         // -- call initializer method
-        return "dt.initDataTables('$selector', $json);\n";
+        return "dt.initDataTables('{$selector}', {$json});\n";
     }
 
 }
