@@ -57,10 +57,10 @@ dt.init.delayedSearch = function (table, minSearchCharacters) {
 dt.init.searchTrigger = function (table, sender)
 {
     $(document).on('change', sender, function () {
-        var value = table.search();
+        var value = table.api().search();
         if (!value) // no search results displayed, need no update
             return;
-        table.search(value).draw();
+        table.api().search(value).draw();
     });
 };
 
