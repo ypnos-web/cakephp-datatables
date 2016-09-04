@@ -14,6 +14,7 @@ class DataTablesComponent extends Component
         'start' => 0,
         'length' => 10,
         'order' => [],
+        'caseInsensitiveSearch' => false,
         'prefixSearch' => true, // use "LIKE …%" instead of "LIKE %…%" conditions
         'conditionsOr' => [],  // table-wide search conditions
         'conditionsAnd' => [], // column search conditions
@@ -191,9 +192,15 @@ class DataTablesComponent extends Component
 
     private function _addCondition($column, $value, $type = 'and')
     {
+        $value = $this->config('caseInsensitiveSearch') ? strtolower($value) : $value;
         $right = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
-        $condition = ["{$column} LIKE" => $right];
+        if ($this->config('caseInsensitiveSearch')) {
+          $condition = ["LOWER({$column}) LIKE" => $right];
+        } else {
+          $condition = ["{$column} LIKE" => $right];
+        }
 
+        //die(debug($condition));
         if ($type === 'or') {
             $this->config('conditionsOr', $condition); // merges
             return;
