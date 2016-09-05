@@ -2,6 +2,10 @@
 namespace DataTables\Controller\Component;
 
 use Cake\Controller\Component;
+use Cake\Database\Schema\BaseSchema;
+use Cake\Database\Schema\Table;
+use Cake\Form\Schema;
+use Cake\ORM\Entity;
 use Cake\ORM\TableRegistry;
 
 /**
@@ -14,6 +18,10 @@ class DataTablesComponent extends Component
         'start' => 0,
         'length' => 10,
         'order' => [],
+        'search' => [
+          'prefix' => true, // use "LIKE …%" instead of "LIKE %…%" conditions
+          'ignoreCase' => true // user LOWER(.) for string matching inside queries
+        ],
         'caseInsensitiveSearch' => false,
         'prefixSearch' => true, // use "LIKE …%" instead of "LIKE %…%" conditions
         'conditionsOr' => [],  // table-wide search conditions
@@ -192,15 +200,18 @@ class DataTablesComponent extends Component
 
     private function _addCondition($column, $value, $type = 'and')
     {
-        $value = $this->config('caseInsensitiveSearch') ? strtolower($value) : $value;
-        $right = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
-        if ($this->config('caseInsensitiveSearch')) {
+        $columnName = explode('.', $column)[1]; // Column names always come in the table.field form
+        $fieldType = TableRegistry::get($this->_tableName)->schema()->column($columnName)['type']; // standarized ORM type
+        $validTypesForCaseConversion = ['string', 'text']; // valid types to do case insensitive comparison (lower())
+
+        $value = $this->config('search.ignoreCase') ? strtolower($value) : $value;
+        $right = $this->config('search.prefix') ? "{$value}%" : "%{$value}%";
+
+        if ($this->config('search.ignoreCase') && in_array($fieldType, $validTypesForCaseConversion)) {
           $condition = ["LOWER({$column}) LIKE" => $right];
         } else {
           $condition = ["{$column} LIKE" => $right];
         }
-
-        //die(debug($condition));
         if ($type === 'or') {
             $this->config('conditionsOr', $condition); // merges
             return;
