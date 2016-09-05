@@ -18,8 +18,6 @@ class DataTablesComponent extends Component
           'prefix' => true, // use "LIKE …%" instead of "LIKE %…%" conditions
           'ignoreCase' => true // user LOWER(.) for string matching inside queries
         ],
-        'caseInsensitiveSearch' => false,
-        'prefixSearch' => true, // use "LIKE …%" instead of "LIKE %…%" conditions
         'conditionsOr' => [],  // table-wide search conditions
         'conditionsAnd' => [], // column search conditions
         'matching' => [],      // column search conditions for foreign tables
