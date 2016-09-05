@@ -2,6 +2,7 @@
 namespace DataTables\Controller\Component;
 
 use Cake\Controller\Component;
+use Cake\Log\Log;
 use Cake\ORM\TableRegistry;
 
 /**
@@ -177,6 +178,7 @@ class DataTablesComponent extends Component
 
         // -- set all view vars to view and serialize array
         $this->_setViewVars();
+
         return $data;
 
     }
@@ -198,11 +200,11 @@ class DataTablesComponent extends Component
         $fieldType = TableRegistry::get($this->_tableName)->schema()->column($columnName)['type']; // standarized ORM type
         $validTypesForCaseConversion = ['string', 'text']; // valid types to do case insensitive comparison (lower())
 
-        $value = $this->config('search.ignoreCase') ? strtolower($value) : $value;
+        //$value = $this->config('search.ignoreCase') ? strtolower($value) : $value;
         $right = $this->config('search.prefix') ? "{$value}%" : "%{$value}%";
 
         if ($this->config('search.ignoreCase') && in_array($fieldType, $validTypesForCaseConversion)) {
-          $condition = ["LOWER({$column}) LIKE" => $right];
+          $condition = ["LOWER({$column}) LIKE" => "LOWER('{$right}')"];
         } else {
           $condition = ["{$column} LIKE" => $right];
         }
