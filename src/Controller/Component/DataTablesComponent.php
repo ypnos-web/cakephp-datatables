@@ -2,10 +2,6 @@
 namespace DataTables\Controller\Component;
 
 use Cake\Controller\Component;
-use Cake\Database\Schema\BaseSchema;
-use Cake\Database\Schema\Table;
-use Cake\Form\Schema;
-use Cake\ORM\Entity;
 use Cake\ORM\TableRegistry;
 
 /**
