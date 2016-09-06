@@ -199,12 +199,12 @@ class DataTablesComponent extends Component
         $columnName = explode('.', $column)[1]; // Column names always come in the table.field form
         $fieldType = TableRegistry::get($this->_tableName)->schema()->column($columnName)['type']; // standarized ORM type
         $validTypesForCaseConversion = ['string', 'text']; // valid types to do case insensitive comparison (lower())
-
-        //$value = $this->config('search.ignoreCase') ? strtolower($value) : $value;
         $right = $this->config('search.prefix') ? "{$value}%" : "%{$value}%";
 
         if ($this->config('search.ignoreCase') && in_array($fieldType, $validTypesForCaseConversion)) {
-          $condition = ["LOWER({$column}) LIKE" => "LOWER('{$right}')"];
+          $query = TableRegistry::get($this->_tableName)->find(); // Get table reference
+          $lower = $query->newExpr()->add("LOWER('{$right}')");
+          $condition = ["LOWER({$column}) LIKE" => $lower];
         } else {
           $condition = ["{$column} LIKE" => $right];
         }
