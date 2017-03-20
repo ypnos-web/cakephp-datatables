@@ -101,10 +101,10 @@ dt.init.rowLinks = function (table, urlbase, target) {
         var url = urlbase + '/' + id;
         if (typeof target !== 'undefined') {
             $(target).load(url);
-            table.api().rows(indexes).deselect(); // revert selection
         } else {
             window.location.href = url;
         }
+        table.api().rows(indexes).deselect(); // revert selection
     });
 };
 
