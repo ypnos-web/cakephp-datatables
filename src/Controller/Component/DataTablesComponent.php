@@ -281,15 +281,15 @@ class DataTablesComponent extends Component
             }
         }
 
-        // Check application config if the column type has a comparison defined
+        // Check application config if the column type has a default comparison defined
         $columnDesc = $this->_collection->describe($tableName)->column($columnName);
-        $columnConfig = Configure::read('DataTables.columnComparison');
+        $columnConfig = Configure::read('DataTables.Columns.Comparison');
 
         if(isset($columnConfig[$columnDesc['type']])) {
             return $columnConfig[$columnDesc['type']];
         }
 
-        // Fallback to LIKE
+        // Always fallback to LIKE
         return DataTablesComparison::LIKE;
     }
 }
