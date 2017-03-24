@@ -3,6 +3,7 @@ namespace DataTables\Controller\Component;
 
 use Cake\Collection\Collection;
 use Cake\Controller\Component;
+use Cake\Core\Configure;
 use Cake\Datasource\ConnectionManager;
 use Cake\ORM\TableRegistry;
 use Cake\Utility\Inflector;
@@ -280,17 +281,15 @@ class DataTablesComponent extends Component
             }
         }
 
-        // Default comparison by column type
+        // Check application config if the column type has a comparison defined
         $columnDesc = $this->_collection->describe($tableName)->column($columnName);
+        $columnConfig = Configure::read('DataTables.columnComparison');
 
-        switch ($columnDesc['type']) {
-            case 'integer':
-            case 'biginteger':
-            case 'decimal':
-            case 'uuid':
-                return DataTablesComparison::EQUALS;
+        if(isset($columnConfig[$columnDesc['type']])) {
+            return $columnConfig[$columnDesc['type']];
         }
 
+        // Fallback to LIKE
         return DataTablesComparison::LIKE;
     }
 }
