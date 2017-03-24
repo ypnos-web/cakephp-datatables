@@ -163,6 +163,11 @@ class DataTablesComponent extends Component
         $db = ConnectionManager::get($this->config('comparison_datasource'));
         $this->_collection = $db->schemaCollection();
 
+        // Get the defaut column comparison configuration
+        if(Configure::check('DataTables.Columns.Comparison')) {
+            $this->_defaultComparison = array_merge($this->_defaultComparison, Configure::read('DataTables.Columns.Comparison'));
+        };
+
         // -- process draw & ordering options
         $this->_draw();
         $this->_order($options);
@@ -280,34 +285,29 @@ class DataTablesComponent extends Component
     protected function getComparison($column)
     {
         $config = new Collection($this->config('comparison'));
-        $tableName = $this->_tableName;
+        $tableName = $entity = $this->_tableName;
 
         // Attempt to find the table name
         if (false !== ($pos = strpos($column, '.'))) {
             $entity = substr($column, 0, $pos);
             $tableName = TableRegistry::get($entity)->table();
             $columnName = substr($column, $pos + 1);
+        }
 
-            // See if the controller defined a specific comparison type for this field
-            $userConfig = $config->filter(function ($item, $key) use ($entity, $columnName) {
-                return strtolower($key) === strtolower(sprintf('%s.%s', $entity, $columnName));
-            });
+        // See if the controller defined a specific comparison type for this field
+        $userConfig = $config->filter(function ($item, $key) use ($entity, $columnName) {
+            return strtolower($key) === strtolower(sprintf('%s.%s', $entity, $columnName));
+        });
 
-            if (!$userConfig->isEmpty()) {
-                return $userConfig->first();
-            }
+        if (!$userConfig->isEmpty()) {
+            return $userConfig->first();
         }
 
         // Check application config if the column type has a default comparison defined
         $columnDesc = $this->_collection->describe($tableName)->column($columnName);
-        $columnConfig = $this->_defaultComparison;
 
-        if(Configure::check('DataTables.Columns.Comparison')) {
-            $columnConfig = array_merge($columnConfig, Configure::read('DataTables.Columns.Comparison'));
-        };
-
-        if(isset($columnConfig[$columnDesc['type']])) {
-            return $columnConfig[$columnDesc['type']];
+        if(isset($this->_defaultComparison[$columnDesc['type']])) {
+            return $this->_defaultComparison[$columnDesc['type']];
         }
 
         return null;
