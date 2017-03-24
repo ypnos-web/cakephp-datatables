@@ -26,6 +26,23 @@ class DataTablesComponent extends Component
         'comparison_datasource' => 'default'
     ];
 
+    protected $_defaultComparison = [
+        'string' => 'like',
+        'text' => 'like',
+        'uuid' => 'like',
+        'integer' => 'equals',
+        'biginteger' => 'equals',
+        'float' => 'equals',
+        'decimal' => 'equals',
+        'boolean' => 'equals',
+        'binary' => 'like',
+        'date' => 'like',
+        'datetime' => 'like',
+        'timestamp' => 'like',
+        'time' => 'like',
+        'json' => 'like',
+    ];
+
     protected $_viewVars = [
         'recordsTotal' => 0,
         'recordsFiltered' => 0,
@@ -211,31 +228,31 @@ class DataTablesComponent extends Component
         $comparison = $this->getComparison($column);
 
         switch($comparison) {
-            case DataTablesComparison::EQUALS:
+            case 'equals':
                 $condition = ["{$column} = " => $value];
                 break;
 
-            case DataTablesComparison::GREATER:
+            case 'greater':
                 $condition = ["{$column} > " => $value];
                 break;
 
-            case DataTablesComparison::GREATER_EQUALS:
+            case 'greaterEquals':
                 $condition = ["{$column} >= " => $value];
                 break;
 
-            case DataTablesComparison::LESS:
+            case 'less':
                 $condition = ["{$column} < " => $value];
                 break;
 
-            case DataTablesComparison::LESS_EQUALS:
+            case 'lessEquals':
                 $condition = ["{$column} <= " => $value];
                 break;
 
-            case DataTablesComparison::NOT_LIKE:
+            case 'notLike':
                 $right = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
                 $condition = ["{$column} NOT LIKE" => $right];
 
-            case DataTablesComparison::LIKE:
+            case 'like':
             default :
                 $right = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
                 $condition = ["{$column} LIKE" => $right];
@@ -283,13 +300,15 @@ class DataTablesComponent extends Component
 
         // Check application config if the column type has a default comparison defined
         $columnDesc = $this->_collection->describe($tableName)->column($columnName);
-        $columnConfig = Configure::read('DataTables.Columns.Comparison');
+        $columnConfig = array_merge(
+            $this->_defaultComparison,
+            Configure::read('DataTables.Columns.Comparison')
+        );
 
         if(isset($columnConfig[$columnDesc['type']])) {
             return $columnConfig[$columnDesc['type']];
         }
 
-        // Always fallback to LIKE
-        return DataTablesComparison::LIKE;
+        return null;
     }
 }
