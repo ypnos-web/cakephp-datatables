@@ -27,20 +27,20 @@ class DataTablesComponent extends Component
     ];
 
     protected $_defaultComparison = [
-        'string' => 'like',
-        'text' => 'like',
-        'uuid' => 'like',
-        'integer' => 'equals',
-        'biginteger' => 'equals',
-        'float' => 'equals',
-        'decimal' => 'equals',
-        'boolean' => 'equals',
-        'binary' => 'like',
-        'date' => 'like',
-        'datetime' => 'like',
-        'timestamp' => 'like',
-        'time' => 'like',
-        'json' => 'like',
+        'string' => 'LIKE',
+        'text' => 'LIKE',
+        'uuid' => 'LIKE',
+        'integer' => '=',
+        'biginteger' => '=',
+        'float' => '=',
+        'decimal' => '=',
+        'boolean' => '=',
+        'binary' => 'LIKE',
+        'date' => 'LIKE',
+        'datetime' => 'LIKE',
+        'timestamp' => 'LIKE',
+        'time' => 'LIKE',
+        'json' => 'LIKE',
     ];
 
     protected $_viewVars = [
@@ -230,38 +230,14 @@ class DataTablesComponent extends Component
 
     private function _addCondition($column, $value, $type = 'and')
     {
-        $comparison = $this->getComparison($column);
+        $comparison = trim($this->getComparison($column));
 
-        switch($comparison) {
-            case 'equals':
-                $condition = ["{$column} = " => $value];
-                break;
-
-            case 'greater':
-                $condition = ["{$column} > " => $value];
-                break;
-
-            case 'greaterEquals':
-                $condition = ["{$column} >= " => $value];
-                break;
-
-            case 'less':
-                $condition = ["{$column} < " => $value];
-                break;
-
-            case 'lessEquals':
-                $condition = ["{$column} <= " => $value];
-                break;
-
-            case 'notLike':
-                $right = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
-                $condition = ["{$column} NOT LIKE" => $right];
-
-            case 'like':
-            default :
-                $right = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
-                $condition = ["{$column} LIKE" => $right];
+        // LIKE and NOT LIKE need to wrap the `%` sign
+        if (false !== strpos(strtolower($comparison), 'like')) {
+            $value = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
         }
+
+        $condition = ["{$column} {$comparison}" => $value];
 
         if ($type === 'or') {
             $this->config('conditionsOr', $condition); // merges
