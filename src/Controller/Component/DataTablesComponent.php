@@ -23,7 +23,7 @@ class DataTablesComponent extends Component
         'conditionsAnd' => [], // column search conditions
         'matching' => [],      // column search conditions for foreign tables
         'comparison' => [], // per-column comparison definition
-        'comparison_schema' => 'default'
+        'comparison_datasource' => 'default'
     ];
 
     protected $_viewVars = [
@@ -143,7 +143,7 @@ class DataTablesComponent extends Component
         $this->_tableName = $table->alias();
 
         // Get main table schema
-        $db = ConnectionManager::get($this->config('comparison_schema'));
+        $db = ConnectionManager::get($this->config('comparison_datasource'));
         $this->_collection = $db->schemaCollection();
 
         // -- process draw & ordering options
