@@ -1,8 +1,11 @@
 <?php
 namespace DataTables\Controller\Component;
 
+use Cake\Collection\Collection;
 use Cake\Controller\Component;
+use Cake\Datasource\ConnectionManager;
 use Cake\ORM\TableRegistry;
+use Cake\Utility\Inflector;
 
 /**
  * DataTables component
@@ -18,6 +21,8 @@ class DataTablesComponent extends Component
         'conditionsOr' => [],  // table-wide search conditions
         'conditionsAnd' => [], // column search conditions
         'matching' => [],      // column search conditions for foreign tables
+        'comparison' => [], // per-column comparison definition
+        'comparison_schema' => 'default'
     ];
 
     protected $_viewVars = [
@@ -29,6 +34,13 @@ class DataTablesComponent extends Component
     protected $_tableName = null;
 
     protected $_plugin = null;
+
+    /**
+     * Schema collection
+     *
+     * @var Cake\Database\Schema\Collection
+     */
+    protected $_collection = null;
 
     /**
      * Process draw option (pass-through)
@@ -129,6 +141,10 @@ class DataTablesComponent extends Component
         $table = TableRegistry::get($tableName);
         $this->_tableName = $table->alias();
 
+        // Get main table schema
+        $db = ConnectionManager::get($this->config('comparison_schema'));
+        $this->_collection = $db->schemaCollection();
+
         // -- process draw & ordering options
         $this->_draw();
         $this->_order($options);
@@ -191,8 +207,38 @@ class DataTablesComponent extends Component
 
     private function _addCondition($column, $value, $type = 'and')
     {
-        $right = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
-        $condition = ["{$column} LIKE" => $right];
+        $comparison = $this->getComparison($column);
+
+        switch($comparison) {
+            case DataTablesComparison::EQUALS:
+                $condition = ["{$column} = " => $value];
+                break;
+
+            case DataTablesComparison::GREATER:
+                $condition = ["{$column} > " => $value];
+                break;
+
+            case DataTablesComparison::GREATER_EQUALS:
+                $condition = ["{$column} >= " => $value];
+                break;
+
+            case DataTablesComparison::LESS:
+                $condition = ["{$column} < " => $value];
+                break;
+
+            case DataTablesComparison::LESS_EQUALS:
+                $condition = ["{$column} <= " => $value];
+                break;
+
+            case DataTablesComparison::NOT_LIKE:
+                $right = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
+                $condition = ["{$column} NOT LIKE" => $right];
+
+            case DataTablesComparison::LIKE:
+            default :
+                $right = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
+                $condition = ["{$column} LIKE" => $right];
+        }
 
         if ($type === 'or') {
             $this->config('conditionsOr', $condition); // merges
@@ -205,5 +251,46 @@ class DataTablesComponent extends Component
         } else {
             $this->config('matching', [$association => $condition]); // merges
         }
+    }
+
+    /**
+     * Get comparison by entity and column name.
+     *
+     * @param  string $column Database column
+     * @return int            Database comparison type
+     */
+    protected function getComparison($column)
+    {
+        $config = new Collection($this->config('comparison'));
+        $tableName = $this->_tableName;
+
+        // Attempt to find the table name
+        if (false !== ($pos = strpos($column, '.'))) {
+            $entity = substr($column, 0, $pos);
+            $tableName = TableRegistry::get($entity)->table();
+            $columnName = substr($column, $pos + 1);
+
+            // See if the controller defined a specific comparison type for this field
+            $userConfig = $config->filter(function ($item, $key) use ($entity, $columnName) {
+                return strtolower($key) === strtolower(sprintf('%s.%s', $entity, $columnName));
+            });
+
+            if (!$userConfig->isEmpty()) {
+                return $userConfig->first();
+            }
+        }
+
+        // Default comparison by column type
+        $columnDesc = $this->_collection->describe($tableName)->column($columnName);
+
+        switch ($columnDesc['type']) {
+            case 'integer':
+            case 'biginteger':
+            case 'decimal':
+            case 'uuid':
+                return DataTablesComparison::EQUALS;
+        }
+
+        return DataTablesComparison::LIKE;
     }
 }
