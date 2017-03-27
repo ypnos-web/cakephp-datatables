@@ -230,10 +230,10 @@ class DataTablesComponent extends Component
 
     private function _addCondition($column, $value, $type = 'and')
     {
-        $comparison = trim($this->getComparison($column));
+        $comparison = trim($this->_getComparison($column));
 
         // LIKE and NOT LIKE need to wrap the `%` sign
-        if (false !== strpos(strtolower($comparison), 'like')) {
+        if (strpos(strtolower($comparison), 'like') !== false) {
             $value = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
         }
 
@@ -253,24 +253,25 @@ class DataTablesComponent extends Component
     }
 
     /**
-     * Get comparison by entity and column name.
+     * Get comparison operator by entity and column name.
      *
      * @param  string $column Database column
-     * @return int            Database comparison type
+     * @return string         Database comparison operator
      */
-    protected function getComparison($column)
+    protected function _getComparison($column)
     {
         $config = new Collection($this->config('comparison'));
         $tableName = $entity = $this->_tableName;
+        $columnName = $column;
 
         // Attempt to find the table name
-        if (false !== ($pos = strpos($column, '.'))) {
+        if (($pos = strpos($column, '.')) !== false) {
             $entity = substr($column, 0, $pos);
             $tableName = TableRegistry::get($entity)->table();
             $columnName = substr($column, $pos + 1);
         }
 
-        // See if the controller defined a specific comparison type for this field
+        // Lookup the controller config for the comparison operator
         $userConfig = $config->filter(function ($item, $key) use ($entity, $columnName) {
             return strtolower($key) === strtolower(sprintf('%s.%s', $entity, $columnName));
         });
@@ -279,13 +280,9 @@ class DataTablesComponent extends Component
             return $userConfig->first();
         }
 
-        // Check application config if the column type has a default comparison defined
+        // Lookup the application config for the comparison operator
         $columnDesc = $this->_collection->describe($tableName)->column($columnName);
 
-        if(isset($this->_defaultComparison[$columnDesc['type']])) {
-            return $this->_defaultComparison[$columnDesc['type']];
-        }
-
-        return null;
+        return $this->_defaultComparison[$columnDesc['type']] ?? '=';
     }
 }
