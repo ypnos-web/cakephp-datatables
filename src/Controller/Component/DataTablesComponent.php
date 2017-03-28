@@ -4,8 +4,9 @@ namespace DataTables\Controller\Component;
 use Cake\Collection\Collection;
 use Cake\Controller\Component;
 use Cake\Core\Configure;
+use Cake\ORM\Query;
+use Cake\ORM\Table;
 use Cake\ORM\TableRegistry;
-use Cake\Utility\Inflector;
 
 /**
  * DataTables component
@@ -47,9 +48,19 @@ class DataTablesComponent extends Component
         'draw' => 0
     ];
 
-    protected $_tableName = null;
+    /** @var Table */
+    protected $_table = null;
 
     protected $_plugin = null;
+
+    public function initialize(array $config)
+    {
+        /* Set default comparison operators for field types */
+        if (Configure::check('DataTables.ComparisonOperators')) {
+            $operators = Configure::read('DataTables.ComparisonOperators');
+            $this->_defaultComparison = array_merge($this->_defaultComparison, $operators);
+        };
+    }
 
     /**
      * Process draw option (pass-through)
@@ -147,20 +158,14 @@ class DataTablesComponent extends Component
         $delegateSearch = !empty($options['delegateSearch']);
 
         // -- get table object
-        $table = TableRegistry::get($tableName);
-        $this->_tableName = $table->alias();
-
-        // Get the defaut column comparison configuration
-        if(Configure::check('DataTables.ComparisonOperators')) {
-            $this->_defaultComparison = array_merge($this->_defaultComparison, Configure::read('DataTables.ComparisonOperators'));
-        };
+        $this->_table = TableRegistry::get($tableName);
 
         // -- process draw & ordering options
         $this->_draw();
         $this->_order($options);
 
         // -- call table's finder w/o filters
-        $data = $table->find($finder, $options);
+        $data = $this->_table->find($finder, $options);
 
         // -- retrieve total count
         $this->_viewVars['recordsTotal'] = $data->count();
@@ -176,7 +181,7 @@ class DataTablesComponent extends Component
             } else {
                 $data->where($this->config('conditionsAnd'));
                 foreach ($this->config('matching') as $association => $where) {
-                    $data->matching($association, function ($q) use ($where) {
+                    $data->matching($association, function (Query $q) use ($where) {
                         return $q->where($where);
                     });
                 }
@@ -232,7 +237,7 @@ class DataTablesComponent extends Component
         }
 
         list($association, $field) = explode('.', $column);
-        if ($this->_tableName == $association) {
+        if ($this->_table->alias() == $association) {
             $this->config('conditionsAnd', $condition); // merges
         } else {
             $this->config('matching', [$association => $condition]); // merges
@@ -242,33 +247,31 @@ class DataTablesComponent extends Component
     /**
      * Get comparison operator by entity and column name.
      *
-     * @param  string $column Database column
-     * @return string         Database comparison operator
+     * @param $column: Database column name (may be in form Table.column)
+     * @return: Database comparison operator
      */
-    protected function _getComparison($column)
+    protected function _getComparison(string $column) : string
     {
         $config = new Collection($this->config('comparison'));
-        $entity = $this->_tableName;
-        $columnName = $column;
+        $table = $this->_table;
 
-        // Attempt to find the table name
+        /* extract table if encoded in $column */
         if (($pos = strpos($column, '.')) !== false) {
-            $entity = substr($column, 0, $pos);
-            $columnName = substr($column, $pos + 1);
+            $table = TableRegistry::get(substr($column, 0, $pos));
+            $column = substr($column, $pos + 1);
         }
 
-        // Lookup the controller config for the comparison operator
-        $userConfig = $config->filter(function ($item, $key) use ($entity, $columnName) {
-            return strtolower($key) === strtolower(sprintf('%s.%s', $entity, $columnName));
+        /* Lookup per-column configuration for the comparison operator */
+        $userConfig = $config->filter(function ($item, $key) use ($table, $column) {
+            $wanted = sprintf('%s.%s', $table->alias(), $column);
+            return strtolower($key) === strtolower($wanted);
         });
-
         if (!$userConfig->isEmpty()) {
             return $userConfig->first();
         }
 
-        // Lookup the application config for the comparison operator
-        $columnDesc = TableRegistry::get($entity)->schema()->column($columnName);
-
+        /* Lookup per-field type configuration for the comparison operator */
+        $columnDesc = $table->schema()->column($column);
         return $this->_defaultComparison[$columnDesc['type']] ?? '=';
     }
 }
