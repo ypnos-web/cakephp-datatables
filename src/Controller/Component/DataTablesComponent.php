@@ -151,8 +151,8 @@ class DataTablesComponent extends Component
         $this->_tableName = $table->alias();
 
         // Get the defaut column comparison configuration
-        if(Configure::check('DataTables.Columns.Comparison')) {
-            $this->_defaultComparison = array_merge($this->_defaultComparison, Configure::read('DataTables.Columns.Comparison'));
+        if(Configure::check('DataTables.ComparisonOperators')) {
+            $this->_defaultComparison = array_merge($this->_defaultComparison, Configure::read('DataTables.ComparisonOperators'));
         };
 
         // -- process draw & ordering options
