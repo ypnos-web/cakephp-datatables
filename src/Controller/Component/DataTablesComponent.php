@@ -4,7 +4,6 @@ namespace DataTables\Controller\Component;
 use Cake\Collection\Collection;
 use Cake\Controller\Component;
 use Cake\Core\Configure;
-use Cake\Datasource\ConnectionManager;
 use Cake\ORM\TableRegistry;
 use Cake\Utility\Inflector;
 
@@ -23,7 +22,6 @@ class DataTablesComponent extends Component
         'conditionsAnd' => [], // column search conditions
         'matching' => [],      // column search conditions for foreign tables
         'comparison' => [], // per-column comparison definition
-        'comparison_datasource' => 'default'
     ];
 
     protected $_defaultComparison = [
@@ -52,13 +50,6 @@ class DataTablesComponent extends Component
     protected $_tableName = null;
 
     protected $_plugin = null;
-
-    /**
-     * Schema collection
-     *
-     * @var Cake\Database\Schema\Collection
-     */
-    protected $_collection = null;
 
     /**
      * Process draw option (pass-through)
@@ -159,10 +150,6 @@ class DataTablesComponent extends Component
         $table = TableRegistry::get($tableName);
         $this->_tableName = $table->alias();
 
-        // Get main table schema
-        $db = ConnectionManager::get($this->config('comparison_datasource'));
-        $this->_collection = $db->schemaCollection();
-
         // Get the defaut column comparison configuration
         if(Configure::check('DataTables.Columns.Comparison')) {
             $this->_defaultComparison = array_merge($this->_defaultComparison, Configure::read('DataTables.Columns.Comparison'));
@@ -261,13 +248,12 @@ class DataTablesComponent extends Component
     protected function _getComparison($column)
     {
         $config = new Collection($this->config('comparison'));
-        $tableName = $entity = $this->_tableName;
+        $entity = $this->_tableName;
         $columnName = $column;
 
         // Attempt to find the table name
         if (($pos = strpos($column, '.')) !== false) {
             $entity = substr($column, 0, $pos);
-            $tableName = TableRegistry::get($entity)->table();
             $columnName = substr($column, $pos + 1);
         }
 
@@ -281,7 +267,7 @@ class DataTablesComponent extends Component
         }
 
         // Lookup the application config for the comparison operator
-        $columnDesc = $this->_collection->describe($tableName)->column($columnName);
+        $columnDesc = TableRegistry::get($entity)->schema()->column($columnName);
 
         return $this->_defaultComparison[$columnDesc['type']] ?? '=';
     }
