@@ -1,8 +1,11 @@
 <?php
 namespace DataTables\Controller\Component;
 
+use Cake\Collection\Collection;
 use Cake\Controller\Component;
+use Cake\Core\Configure;
 use Cake\ORM\TableRegistry;
+use Cake\Utility\Inflector;
 
 /**
  * DataTables component
@@ -18,6 +21,24 @@ class DataTablesComponent extends Component
         'conditionsOr' => [],  // table-wide search conditions
         'conditionsAnd' => [], // column search conditions
         'matching' => [],      // column search conditions for foreign tables
+        'comparison' => [], // per-column comparison definition
+    ];
+
+    protected $_defaultComparison = [
+        'string' => 'LIKE',
+        'text' => 'LIKE',
+        'uuid' => 'LIKE',
+        'integer' => '=',
+        'biginteger' => '=',
+        'float' => '=',
+        'decimal' => '=',
+        'boolean' => '=',
+        'binary' => 'LIKE',
+        'date' => 'LIKE',
+        'datetime' => 'LIKE',
+        'timestamp' => 'LIKE',
+        'time' => 'LIKE',
+        'json' => 'LIKE',
     ];
 
     protected $_viewVars = [
@@ -129,6 +150,11 @@ class DataTablesComponent extends Component
         $table = TableRegistry::get($tableName);
         $this->_tableName = $table->alias();
 
+        // Get the defaut column comparison configuration
+        if(Configure::check('DataTables.ComparisonOperators')) {
+            $this->_defaultComparison = array_merge($this->_defaultComparison, Configure::read('DataTables.ComparisonOperators'));
+        };
+
         // -- process draw & ordering options
         $this->_draw();
         $this->_order($options);
@@ -191,8 +217,14 @@ class DataTablesComponent extends Component
 
     private function _addCondition($column, $value, $type = 'and')
     {
-        $right = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
-        $condition = ["{$column} LIKE" => $right];
+        $comparison = trim($this->_getComparison($column));
+
+        // LIKE and NOT LIKE need to wrap the `%` sign
+        if (strpos(strtolower($comparison), 'like') !== false) {
+            $value = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
+        }
+
+        $condition = ["{$column} {$comparison}" => $value];
 
         if ($type === 'or') {
             $this->config('conditionsOr', $condition); // merges
@@ -205,5 +237,38 @@ class DataTablesComponent extends Component
         } else {
             $this->config('matching', [$association => $condition]); // merges
         }
+    }
+
+    /**
+     * Get comparison operator by entity and column name.
+     *
+     * @param  string $column Database column
+     * @return string         Database comparison operator
+     */
+    protected function _getComparison($column)
+    {
+        $config = new Collection($this->config('comparison'));
+        $entity = $this->_tableName;
+        $columnName = $column;
+
+        // Attempt to find the table name
+        if (($pos = strpos($column, '.')) !== false) {
+            $entity = substr($column, 0, $pos);
+            $columnName = substr($column, $pos + 1);
+        }
+
+        // Lookup the controller config for the comparison operator
+        $userConfig = $config->filter(function ($item, $key) use ($entity, $columnName) {
+            return strtolower($key) === strtolower(sprintf('%s.%s', $entity, $columnName));
+        });
+
+        if (!$userConfig->isEmpty()) {
+            return $userConfig->first();
+        }
+
+        // Lookup the application config for the comparison operator
+        $columnDesc = TableRegistry::get($entity)->schema()->column($columnName);
+
+        return $this->_defaultComparison[$columnDesc['type']] ?? '=';
     }
 }
