@@ -222,25 +222,32 @@ class DataTablesComponent extends Component
 
     private function _addCondition($column, $value, $type = 'and')
     {
-        $comparison = trim($this->_getComparison($column));
+        /* extract table (encoded in $column or default) */
+        $table = $this->_table;
+        if (($pos = strpos($column, '.')) !== false) {
+            $table = TableRegistry::get(substr($column, 0, $pos));
+            $column = substr($column, $pos + 1);
+        }
 
-        // LIKE and NOT LIKE need to wrap the `%` sign
+        /* build condition */
+        $comparison = trim($this->_getComparison($table, $column));
+        // wrap value for LIKE and NOT LIKE
         if (strpos(strtolower($comparison), 'like') !== false) {
             $value = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
         }
-
         $condition = ["{$column} {$comparison}" => $value];
 
+        /* add as global condition */
         if ($type === 'or') {
             $this->config('conditionsOr', $condition); // merges
             return;
         }
 
-        list($association, $field) = explode('.', $column);
-        if ($this->_table->alias() == $association) {
+        /* add as local condition */
+        if ($table === $this->_table) {
             $this->config('conditionsAnd', $condition); // merges
         } else {
-            $this->config('matching', [$association => $condition]); // merges
+            $this->config('matching', [$table->alias() => $condition]); // merges
         }
     }
 
@@ -250,16 +257,9 @@ class DataTablesComponent extends Component
      * @param $column: Database column name (may be in form Table.column)
      * @return: Database comparison operator
      */
-    protected function _getComparison(string $column) : string
+    protected function _getComparison(Table $table, string $column) : string
     {
         $config = new Collection($this->config('comparison'));
-        $table = $this->_table;
-
-        /* extract table if encoded in $column */
-        if (($pos = strpos($column, '.')) !== false) {
-            $table = TableRegistry::get(substr($column, 0, $pos));
-            $column = substr($column, $pos + 1);
-        }
 
         /* Lookup per-column configuration for the comparison operator */
         $userConfig = $config->filter(function ($item, $key) use ($table, $column) {
