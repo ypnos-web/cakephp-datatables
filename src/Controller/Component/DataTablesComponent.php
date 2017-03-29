@@ -177,7 +177,7 @@ class DataTablesComponent extends Component
         if ($filters) {
             if ($delegateSearch) {
                 // call finder again to process filters (provided in $options)
-                $data = $table->find($finder, $options);
+                $data = $this->_table->find($finder, $options);
             } else {
                 $data->where($this->config('conditionsAnd'));
                 foreach ($this->config('matching') as $association => $where) {
