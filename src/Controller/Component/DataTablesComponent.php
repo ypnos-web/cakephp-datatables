@@ -235,7 +235,7 @@ class DataTablesComponent extends Component
         if (strpos(strtolower($comparison), 'like') !== false) {
             $value = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
         }
-        $condition = ["{$column} {$comparison}" => $value];
+        $condition = ["{$table->alias()}.{$column} {$comparison}" => $value];
 
         /* add as global condition */
         if ($type === 'or') {
