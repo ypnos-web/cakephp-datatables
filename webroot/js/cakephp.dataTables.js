@@ -119,7 +119,7 @@ dt.init.columnSearch = function (table, delay) {
  * @param fullscreen true to fit into whole window height (default: remaining)
  */
 dt.init.fitIntoWindow = function (table, offset, fullscreen) {
-    var wrapper = $('#' + table.attr('id') + '_wrapper');
+    var wrapper = $(table.api().table().container());
     var body = wrapper.find('.dataTables_scrollBody');
     if (body.length === 0) // neither scrollX / scrollY used
         body = table;
