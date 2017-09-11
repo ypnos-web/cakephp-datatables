@@ -31,21 +31,35 @@ dt.initDataTables = function (id, data) {
  * Delay search trigger for DataTables input field
  * @param table dataTables object
  * @param minSearchCharacters minimum of characters necessary to trigger search
+ * @param delay milliseconds to delay search to prevent premature searches while typing
+ * @param selector optional, custom jQuery selector for an external search field
  */
-dt.init.delayedSearch = function (table, minSearchCharacters) {
+dt.init.delayedSearch = function (table, minSearchCharacters, delay, selector) {
     /* code taken from http://stackoverflow.com/a/23897722/21974 */
-    // Grab the datatables input box and alter how it is bound to events
-    $('#' + table.attr('id') + '_filter input')
-        .unbind() // Unbind previous default bindings
-        .bind("input", function (e) { // Bind for field changes
+    // Grab given or datatables input box and alter how it is bound to events
+    selector = selector || '#' + table.attr('id') + '_filter input';
+    minSearchCharacters = minSearchCharacters || 3;
+    delay = delay || 200;
+    var timer = null;
+
+    var trigger = function (value) {
+        table.api().search(value).draw();
+    };
+
+    $(selector)
+        .off() // Unbind previous default bindings
+        .on('input', function (e) { // Bind for field changes
             // If enough characters, or search cleared with backspace
             if (this.value.length >= minSearchCharacters || !this.value) {
-                table.api().search(this.value).draw();
+                window.clearTimeout(timer);
+                timer = window.setTimeout(trigger, delay, this.value);
             }
         })
-        .bind("keydown", function (e) { // Bind for key presses
-            if (e.keyCode == 13) // Enter key
-                table.api().search(this.value).draw();
+        .on('keydown', function (e) { // Bind for key presses
+            if (e.keyCode === 13) { // Enter key
+                window.clearTimeout(timer);
+                trigger(this.value);
+            }
         });
 };
 
