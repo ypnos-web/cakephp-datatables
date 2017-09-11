@@ -123,26 +123,38 @@ class DataTablesComponent extends Component
             return false;
 
         // -- check table search field
+        $haveFilters = false;
         $globalSearch = $this->request->query['search']['value'] ?? false;
-        if ($globalSearch && !empty($options['delegateSearch'])) {
-            $options['globalSearch'] = $globalSearch;
-            return true; // TODO: support for deferred local search
+
+        // -- if delegate option set, defer search to the model and bail out
+        if (!empty($options['delegateSearch'])) {
+            if ($globalSearch) {
+                $options['globalSearch'] = $globalSearch;
+                $haveFilters = true;
+            }
+            foreach ($this->request->query['columns'] as $column) {
+                $localSearch = $column['search']['value'];
+                if (!empty($localSearch)) {
+                    $options['localSearch'][$column['name']] = $localSearch;
+                    $haveFilters = true;
+                }
+            }
+            return $haveFilters;
         }
 
         // -- add conditions for both table-wide and column search fields
-        $filters = false;
         foreach ($this->request->query['columns'] as $column) {
             if ($globalSearch && $column['searchable'] == 'true') {
                 $this->_addCondition($column['name'], $globalSearch, 'or');
-                $filters = true;
+                $haveFilters = true;
             }
             $localSearch = $column['search']['value'];
             if (!empty($localSearch)) {
                 $this->_addCondition($column['name'], $column['search']['value']);
-                $filters = true;
+                $haveFilters = true;
             }
         }
-        return $filters;
+        return $haveFilters;
     }
 
     /**
