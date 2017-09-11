@@ -144,15 +144,16 @@ dt.init.fitIntoWindow = function (table, offset, fullscreen) {
     // store fullscreen state in table
     table.data('fullscreen', fullscreen);
 
-    var resizer = function () {
+    table.on('fitIntoWindow', function () {
+        var bodyTag = $('body');
         var total = window.innerHeight;
         if (table.data('fullscreen') || (wrapper.offset().top + minHeight > total)) {
             /* fit table in window minus body padding (fixed header) */
-            total -= $('body').outerHeight(false) - $('body').height();
+            total -= bodyTag.outerHeight(false) - bodyTag.height();
         } else {
             /* fit table between previous content and footer (body margin) */
             total -= wrapper.offset().top;
-            total -= $('body').outerHeight(true) - $('body').outerHeight(false);
+            total -= bodyTag.outerHeight(true) - bodyTag.outerHeight(false);
         }
         /* take table decorations (e.g. info, filter elements) into account */
         var self = wrapper.outerHeight(true) - body.outerHeight(false);
@@ -169,22 +170,22 @@ dt.init.fitIntoWindow = function (table, offset, fullscreen) {
             api.scroller.measure(false);
         }
         /* note: we do not redraw as it leads to several problems. */
-    };
+    });
 
     // initial call
-    resizer();
+    table.trigger('fitIntoWindow');
 
     // call on window resize
     var resizeTimer;
     $(window).on('resize', function (e) {
         clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(resizer, 250);
+        resizeTimer = setTimeout(function () { table.trigger('fitIntoWindow') }, 250);
     });
 
     // allow toggling fullscreen mode
     table.on('toggleFullscreen', function () {
         table.data('fullscreen', !table.data('fullscreen'));
-        resizer();
+        table.trigger('fitIntoWindow');
     });
 };
 
