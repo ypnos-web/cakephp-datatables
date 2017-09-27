@@ -20,6 +20,35 @@ class DataTablesHelper extends Helper
         'deferRender' => true,
     ];
 
+    public function initialize(array $config)
+    {
+        /* set default i18n (not possible in _$defaultConfig due to use of __d() */
+        if (empty($this->config('language'))) {
+            // defaults from datatables.net/reference/option/language
+            $this->config('language', [
+                'emptyTable' => __d('data_tables', 'No data available in table'),
+                'info' => __d('data_tables', 'Showing _START_ to _END_ of _TOTAL_ entries'),
+                'infoEmpty' => __d('data_tables', 'No entries to show'),
+                'infoFiltered' => __d('data_tables', '(filtered from _MAX_ total entries)'),
+                'lengthMenu' => __d('data_tables', 'Show _MENU_ entries'),
+                'processing' => __d('data_tables', 'Processing...'),
+                'search' => __d('data_tables', 'Search:'),
+                'zeroRecords' => __d('data_tables', 'No matching records found'),
+                'paginate' => [
+                    'first' => __d('data_tables', 'First'),
+                    'last' => __d('data_tables', 'Last'),
+                    'next' => __d('data_tables', 'Next'),
+                    'previous' => __d('data_tables', 'Previous'),
+                ],
+                'aria' => [
+                    'sortAscending' => __d('data_tables', ': activate to sort column ascending'),
+                    'sortDescending' => __d('data_tables', ': activate to sort column descending'),
+                ],
+            ]);
+        }
+    }
+
+
     /**
      * Return a Javascript function wrapper to be used in DataTables configuration
      * @param string $name Name of Javascript function to call
@@ -30,7 +59,6 @@ class DataTablesHelper extends Helper
     {
         return new CallbackFunction($name, $args);
     }
-
 
     /**
      * Return a table with dataTables overlay
@@ -47,48 +75,31 @@ class DataTablesHelper extends Helper
         ]);
         $table = $this->Html->tag('table', '', $htmlOptions);
 
-        $code = $this->init($dtOptions)->draw("#{$id}");
+        $code = $this->draw("#{$id}", $dtOptions);
 
         return $table.$this->Html->scriptBlock($code);
     }
 
+    /**
+     * @deprecated use configShallow() instead
+     */
     public function init(array $options = [])
     {
-        // -- load i18n (defaults from datatables.net/reference/option/language)
-        $this->config('language', [
-            'emptyTable' => __d('data_tables', 'No data available in table'),
-            'info' => __d('data_tables', 'Showing _START_ to _END_ of _TOTAL_ entries'),
-            'infoEmpty' => __d('data_tables', 'No entries to show'),
-            'infoFiltered' => __d('data_tables', '(filtered from _MAX_ total entries)'),
-            'lengthMenu' => __d('data_tables', 'Show _MENU_ entries'),
-            'processing' => __d('data_tables', 'Processing...'),
-            'search' => __d('data_tables', 'Search:'),
-            'zeroRecords' => __d('data_tables', 'No matching records found'),
-            'paginate' => [
-                'first' => __d('data_tables', 'First'),
-                'last' => __d('data_tables', 'Last'),
-                'next' => __d('data_tables', 'Next'),
-                'previous' => __d('data_tables', 'Previous'),
-            ],
-            'aria' => [
-                'sortAscending' => __d('data_tables', ': activate to sort column ascending'),
-                'sortDescending' => __d('data_tables', ': activate to sort column descending'),
-            ],
-        ]);
-
-        // -- load user config (may overwrite i18n)
-        $this->config($options);
+        /* merge options non-recursively */
+        $this->configShallow($options);
 
         return $this;
     }
 
-    public function draw($selector)
+    public function draw($selector, array $options = [])
     {
-        // -- initialize dataTables config
-        $json = CallbackFunction::resolve(json_encode($this->config()));
+        // incorporate any defaults set earlier
+        $options += $this->config();
 
-        // -- call initializer method
+        // prepare javascript object from the config, including method calls
+        $json = CallbackFunction::resolve(json_encode($options));
+
+        // return a call to initializer method
         return "dt.initDataTables('{$selector}', {$json});\n";
     }
-
 }
