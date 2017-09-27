@@ -238,9 +238,19 @@ dt.h = function (d)
  *
  */
 dt.resetColumnSearch = function (table) {
+    var needRedraw = false; // redraw when a filter is dis-applied
     table.api().columns().every(function () {
+        // always clean up
+        $(this.footer()).children('input, select').val('');
+
+        if (!this.search())
+            return;
+
+        // remove the filter
         this.search('');
-        $('input, select', this.footer()).val('');
+        needRedraw = true;
     });
-    table.api().draw();
+
+    if (needRedraw)
+        table.api().draw();
 };
