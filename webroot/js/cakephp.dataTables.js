@@ -5,26 +5,26 @@ var dt = dt || {}; // initialize namespace
 dt.init = dt.init || {}; // namespace for initializers
 dt.render = dt.render || {}; // namespace for renderers
 
-dt.initDataTables = function (id, data) {
+dt.initDataTables = function (id, options) {
     /* Use text renderer by default. Escapes HTML. */
-    $.each(data.columns, function (i, val) {
+    $.each(options.columns, function (i, val) {
         if (!val.render) {
-            data.columns[i].render = $.fn.dataTable.render.text();
+            options.columns[i].render = $.fn.dataTable.render.text();
         }
     });
 
     /* call requested initializer methods */
-    if (typeof(data.init) !== 'undefined') {
+    if (typeof(options.init) !== 'undefined') {
         $(id).on('preInit.dt', function () {
             var table = $(id).dataTable(); // table jQuery object
-            for (var i = 0; i < data.init.length; i++) {
-                data.init[i](table);
+            for (var i = 0; i < options.init.length; i++) {
+                options.init[i](table);
             }
         });
     }
 
     /* create new instance */
-    $(id).dataTable(data);
+    $(id).dataTable(options);
 };
 
 /**
