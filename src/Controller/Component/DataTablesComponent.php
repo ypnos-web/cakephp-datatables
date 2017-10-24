@@ -237,8 +237,8 @@ class DataTablesComponent extends Component
 
     private function _addCondition($column, $value, $type = 'and')
     {
-        $right = ($this->config('prefixSearch') ? "$value%" : "%$value%");
-        $condition = ["$column LIKE" => $right];
+        $right = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
+        $condition = ["{$column} LIKE" => $right];
 
         if ($type === 'or') {
             $this->config('conditionsOr', $condition); // merges
