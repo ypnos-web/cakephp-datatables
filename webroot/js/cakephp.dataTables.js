@@ -118,12 +118,12 @@ dt.init.columnSearch = function (table, delay) {
         var lastValue = ''; // closure variable to prevent redundant AJAX calls
         var timer = null; // Timer instance for delayed fetch
         $('input, select', this.footer()).on('keyup change', function () {
-            if (this.value != lastValue) {
+            if (this.value !== lastValue) {
                 lastValue = this.value;
                 // -- set search
                 table.api().column(index).search(this.value);
                 window.clearTimeout(timer);
-                timer = window.setTimeout(table.api().draw(), delay);
+                timer = window.setTimeout(table.api().draw, delay);
             }
         });
     });

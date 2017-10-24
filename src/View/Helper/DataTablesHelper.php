@@ -96,6 +96,12 @@ class DataTablesHelper extends Helper
         // incorporate any defaults set earlier
         $options += $this->config();
 
+        // remove field names, which are an internal/server-side setting
+        if (isset($options['columns'])) {
+            foreach ($options['columns'] as $name => $column)
+                unset($options['columns'][$name]['field']);
+        }
+
         // prepare javascript object from the config, including method calls
         $json = CallbackFunction::resolve(json_encode($options));
 
