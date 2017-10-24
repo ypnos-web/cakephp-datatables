@@ -67,10 +67,16 @@ class DataTablesHelper extends Helper
 
     public function draw($selector)
     {
-        // -- initialize dataTables config
-        $json = JSFunction::resolve(json_encode($this->config()));
+        $options = $this->config();
 
-        // -- call initializer method
+        // remove field names, which are an internal/server-side setting
+        foreach ($options['columns'] ?? [] as $name => $column)
+            unset($options['columns'][$name]['field']);
+
+        // prepare javascript object from the config, including method calls
+        $json = JSFunction::resolve(json_encode($options));
+
+        // call initializer method
         return "initDataTables('$selector', $json);\n";
     }
 
