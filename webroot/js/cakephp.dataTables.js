@@ -118,7 +118,7 @@ dt.init.columnSearch = function (table, delay) {
                 // -- set search
                 table.api().column(index).search(this.value);
                 window.clearTimeout(timer);
-                timer = window.setTimeout(table.api().draw(), delay);
+                timer = window.setTimeout(table.api().draw, delay);
             }
         });
     });
