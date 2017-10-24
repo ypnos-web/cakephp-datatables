@@ -98,6 +98,10 @@ class DataTablesHelper extends Helper
         // fill-in missing language options, in case some were customized
         $options['language'] += $this->config('language');
 
+        // remove field names, which are an internal/server-side setting
+        foreach ($options['columns'] as $name => $column)
+            unset($options['columns'][$name]['field']);
+
         // prepare javascript object from the config, including method calls
         $json = CallbackFunction::resolve(json_encode($options));
 
