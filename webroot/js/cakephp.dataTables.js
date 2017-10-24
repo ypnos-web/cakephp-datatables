@@ -15,10 +15,12 @@ dt.initDataTables = function (id, options) {
 
     /* call requested initializer methods */
     if (typeof(options.init) !== 'undefined') {
+        var initializers = options.init;
+        delete options.init;
         $(id).on('preInit.dt', function () {
             var table = $(id).dataTable(); // table jQuery object
-            for (var i = 0; i < options.init.length; i++) {
-                options.init[i](table);
+            for (var i = 0; i < initializers.length; i++) {
+                initializers[i](table);
             }
         });
     }
