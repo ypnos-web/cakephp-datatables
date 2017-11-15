@@ -97,7 +97,6 @@ class DataTablesComponent extends Component
             return;
 
         $order = $this->config('order');
-
         /* extract custom ordering from request */
         foreach ($this->request->query['order'] as $item) {
             if (!count($columns)) // note: empty() does not work on objects
@@ -147,7 +146,7 @@ class DataTablesComponent extends Component
         }
 
         $haveFilters = false;
-        $delegateSearch = !empty($options['delegateSearch']);
+        $delegateSearch = $options['delegateSearch'] ?? false;
 
         /* add global filter (general search field) */
         $globalSearch = $this->request->query['search']['value'] ?? false;
@@ -203,8 +202,8 @@ class DataTablesComponent extends Component
      *
      * @param $tableName: ORM table name
      * @param $finder: Finder name (as in Table::find())
-     * @param array $options: Finder options (as in Table::find())
-     * @param array $columns: Column definitions needed for filter/order operations
+     * @param $options: Finder options (as in Table::find())
+     * @param $columns: Column definitions needed for filter/order operations
      * @return Query to be evaluated (Query::count() may have already been called)
      */
     public function find(string $tableName, string $finder = 'all', array $options = [], array $columns = []) : Query
