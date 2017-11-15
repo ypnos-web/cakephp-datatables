@@ -36,12 +36,12 @@ class CallbackFunction implements \JsonSerializable
      * @param string $name Name of Javascript function to call
      * @param array $args Optional array of arguments to be passed when calling
      */
-    function __construct(string $name, array $args = [])
+    public function __construct(string $name, array $args = [])
     {
         if (empty($args)) {
             $code = $name;
         } else {
-            $code = 'function (args) { ';
+            $code = 'function () { ';
             foreach ($args as $a) {
                 $arg = json_encode($a);
                 $code .= "Array.prototype.push.call(arguments, {$arg});";
@@ -67,16 +67,16 @@ class CallbackFunction implements \JsonSerializable
      * Get code generated for this JS function call
      * @return string the generated code
      */
-    function code() : string
+    public function code() : string
     {
         return self::$_placeholders['"'.$this->hash.'"'];
     }
 
     /**
      * Serialize to a placeholder in json
-     * @return string a unique hash to be replaced by resolve() after json_encode()
+     * @return: a unique hash to be replaced by resolve() after json_encode()
      */
-    function jsonSerialize()
+    public function jsonSerialize() : string
     {
         return $this->hash;
     }
