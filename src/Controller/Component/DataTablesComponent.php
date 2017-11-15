@@ -8,6 +8,7 @@ use Cake\Network\Exception\BadRequestException;
 use Cake\ORM\Query;
 use Cake\ORM\Table;
 use Cake\ORM\TableRegistry;
+use DataTables\Lib\ColumnDefinitions;
 
 /**
  * DataTables component
@@ -52,7 +53,8 @@ class DataTablesComponent extends Component
     /** @var Table */
     protected $_table = null;
 
-    protected $_plugin = null;
+    /** @var ColumnDefinitions */
+    protected $_columns = null;
 
     public function initialize(array $config)
     {
@@ -61,6 +63,14 @@ class DataTablesComponent extends Component
             $operators = Configure::read('DataTables.ComparisonOperators');
             $this->_defaultComparison = array_merge($this->_defaultComparison, $operators);
         };
+
+        /* setup column definitions */
+        $this->_columns = new ColumnDefinitions();
+    }
+
+    public function columns()
+    {
+        return $this->_columns;
     }
 
     /**
@@ -79,9 +89,9 @@ class DataTablesComponent extends Component
      * Alters $options if delegateOrder is set
      * In this case, the model needs to handle the 'customOrder' option.
      * @param $options: Query options
-     * @param $columns: Column definitions
+     * @param ColumnDefinitions|array Column definitions
      */
-    private function _order(array &$options, array &$columns)
+    private function _order(array &$options, &$columns)
     {
         if (empty($this->request->query['order']))
             return;
@@ -90,7 +100,7 @@ class DataTablesComponent extends Component
 
         /* extract custom ordering from request */
         foreach ($this->request->query['order'] as $item) {
-            if (empty($columns))
+            if (!count($columns)) // note: empty() does not work on objects
                 throw new \InvalidArgumentException('Column ordering requested, but no column definitions provided.');
 
             $dir = strtoupper($item['dir']);
@@ -123,10 +133,10 @@ class DataTablesComponent extends Component
      * Alters $options if delegateSearch is set
      * In this case, the model needs to handle the 'globalSearch' option.
      * @param $options: Query options
-     * @param $columns: Column definitions
+     * @param ColumnDefinitions|array $columns Column definitions
      * @return: true if additional filtering takes place
      */
-    private function _filter(array &$options, array &$columns) : bool
+    private function _filter(array &$options, &$columns) : bool
     {
         /* add limit and offset */
         if (!empty($this->request->query['length'])) {
@@ -166,7 +176,7 @@ class DataTablesComponent extends Component
         foreach ($this->request->query['columns'] ?? [] as $index => $column) {
             $localSearch = $column['search']['value'] ?? null;
             if (!empty($localSearch)) {
-                if (empty($columns))
+                if (!count($columns)) // note: empty() does not work on objects
                     throw new \InvalidArgumentException('Filtering requested, but no column definitions provided.');
 
                 $c = $columns[$index] ?? null;
@@ -200,6 +210,8 @@ class DataTablesComponent extends Component
     public function find(string $tableName, string $finder = 'all', array $options = [], array $columns = []) : Query
     {
         $delegateSearch = $options['delegateSearch'] ?? false;
+        if (empty($columns))
+            $columns = $this->_columns;
 
         // -- get table object
         $this->_table = TableRegistry::get($tableName);
