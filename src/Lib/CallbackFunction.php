@@ -22,7 +22,12 @@ class CallbackFunction implements \JsonSerializable
      */
     public static function resolve(string $json) : string
     {
-        return strtr($json, self::$_placeholders);
+        /* allow one recursion (a callback with a callback as argument) */
+        $replacements = [];
+        foreach (self::$_placeholders as $id => $content) {
+            $replacements[$id] = strtr($content, self::$_placeholders);
+        }
+        return strtr($json, $replacements);
     }
 
     /**
