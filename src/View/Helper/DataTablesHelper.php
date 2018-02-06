@@ -96,14 +96,52 @@ class DataTablesHelper extends Helper
         // incorporate any defaults set earlier
         $options += $this->config();
 
+        // fill-in missing language options, in case some were customized
+        $options['language'] += $this->config('language');
+
+        // sanitize & translate order
+        if (!empty($options['order']))
+            $this->translateOrder($options['order'], $options['columns']);
+
         // remove field names, which are an internal/server-side setting
-        foreach ($options['columns'] ?? [] as $name => $column)
-            unset($options['columns'][$name]['field']);
+        foreach ($options['columns'] as $key => $v)
+            unset($options['columns'][$key]['field']);
 
         // prepare javascript object from the config, including method calls
         $json = CallbackFunction::resolve(json_encode($options));
 
         // return a call to initializer method
         return "dt.initDataTables('{$selector}', {$json});\n";
+    }
+
+    protected function translateOrder(array &$order, &$columns)
+    {
+        // sanitize cakephp style input [a => b] -> [[a, b]]
+        $new_order = [];
+        array_walk($order, function ($val, $key) use (&$new_order) {
+            if (is_integer($key))
+                $new_order[] = $val;
+            else
+                $new_order[] = [$key, $val];
+        });
+        $order = $new_order;
+
+        // sanitize single column input [a, b] -> [[a, b]]
+        if (count($order) == 2 && !is_array($order[0]))
+            $order = [$order];
+
+        // translate order columns
+        foreach ($order as $i => $o) {
+            if (is_numeric($order))
+                continue; // already a numerical index
+
+            foreach ($columns as $key => $v) {
+                // user might have specified it either way…
+                if ($o[0] === ($v['data'] ?? null) || $o[0] === ($v['field'] ?? null)) {
+                    $order[$i][0] = $key;
+                    break;
+                }
+            }
+        }
     }
 }
