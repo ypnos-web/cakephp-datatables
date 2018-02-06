@@ -17,7 +17,7 @@ ___
 
 ## Requirements
 
-* PHP 7
+* PHP 7 (for PHP 5, see the `php5` branch)
 * CakePHP 3.x
 * DataTables 1.10.x
 

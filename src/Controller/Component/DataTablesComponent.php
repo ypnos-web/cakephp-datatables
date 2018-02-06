@@ -4,6 +4,7 @@ namespace DataTables\Controller\Component;
 use Cake\Collection\Collection;
 use Cake\Controller\Component;
 use Cake\Core\Configure;
+use Cake\Database\Driver\Postgres;
 use Cake\Network\Exception\BadRequestException;
 use Cake\ORM\Query;
 use Cake\ORM\Table;
@@ -284,13 +285,19 @@ class DataTablesComponent extends Component
             $column = substr($column, $pos + 1);
         }
 
+        $textCast = "";
+
         /* build condition */
         $comparison = trim($this->_getComparison($table, $column));
         // wrap value for LIKE and NOT LIKE
         if (strpos(strtolower($comparison), 'like') !== false) {
             $value = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
+
+            if($this->_table->getConnection()->getDriver() instanceof Postgres) {
+                $textCast = "::text";
+            }
         }
-        $condition = ["{$table->alias()}.{$column} {$comparison}" => $value];
+        $condition = ["{$table->alias()}.{$column}{$textCast} {$comparison}" => $value];
 
         /* add as global condition */
         if ($type === 'or') {
