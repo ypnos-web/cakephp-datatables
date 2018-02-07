@@ -293,8 +293,12 @@ class DataTablesComponent extends Component
         if (strpos(strtolower($comparison), 'like') !== false) {
             $value = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
             
-            if($this->_table->getConnection()->getDriver() instanceof Postgres) {
-                $textCast = "::text";
+            if ($this->_table->getConnection()->getDriver() instanceof Postgres) {
+                $columnDesc = $table->schema()->column($column);
+                $columnType = $columnDesc['type'];
+                if ($columnType !== 'string' && $columnType !== 'text') {
+                    $textCast = "::text";
+                }
             }
         }
         $condition = ["{$table->alias()}.{$column}{$textCast} {$comparison}" => $value];
