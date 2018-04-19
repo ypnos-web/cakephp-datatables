@@ -23,9 +23,9 @@ class DataTablesHelper extends Helper
     public function initialize(array $config)
     {
         /* set default i18n (not possible in _$defaultConfig due to use of __d() */
-        if (empty($this->config('language'))) {
+        if (empty($this->getConfig('language'))) {
             // defaults from datatables.net/reference/option/language
-            $this->config('language', [
+            $this->setConfig('language', [
                 'emptyTable' => __d('data_tables', 'No data available in table'),
                 'info' => __d('data_tables', 'Showing _START_ to _END_ of _TOTAL_ entries'),
                 'infoEmpty' => __d('data_tables', 'No entries to show'),
@@ -47,8 +47,6 @@ class DataTablesHelper extends Helper
             ]);
         }
     }
-
-
     /**
      * Return a Javascript function wrapper to be used in DataTables configuration
      * @param string $name Name of Javascript function to call
@@ -63,7 +61,7 @@ class DataTablesHelper extends Helper
     /**
      * Return a table with dataTables overlay
      * @param $id: DOM id of the table
-     * @param $dtOptions: Options for DataTables
+     * @param $dtOptions: Options for DataTables (to be merged with this helper's config as defaults)
      * @param $htmlOptions: Options for the table, e.g. CSS classes
      * @return string containing a <table> and a <script> element
      */
@@ -81,29 +79,63 @@ class DataTablesHelper extends Helper
     }
 
     /**
-     * @deprecated use configShallow() instead
+     * Return JavaScript code to initialize DataTables object
+     * Use this method if you want to render the <table> element yourself
+     * Typically the output of this method is fed to HtmlHelper::scriptBlock()
+     * @param string $selector JQuery selector for the <table> element
+     * @param array $options Optional additional/replacement configuration to this helper's config
+     * @return string
      */
-    public function init(array $options = [])
-    {
-        /* merge options non-recursively */
-        $this->configShallow($options);
-
-        return $this;
-    }
-
-    public function draw(string $selector, array $options = [])
+    public function draw(string $selector, array $options = []) : string
     {
         // incorporate any defaults set earlier
-        $options += $this->config();
+        $options += $this->getConfig();
+        // fill-in missing language options, in case some were customized
+        $options['language'] += $this->getConfig('language');
+
+        // sanitize & translate order
+        if (!empty($options['order']))
+            $this->translateOrder($options['order'], $options['columns']);
 
         // remove field names, which are an internal/server-side setting
-        foreach ($options['columns'] ?? [] as $name => $column)
-            unset($options['columns'][$name]['field']);
+        foreach ($options['columns'] as $key => $v)
+            unset($options['columns'][$key]['field']);
 
         // prepare javascript object from the config, including method calls
         $json = CallbackFunction::resolve(json_encode($options));
 
         // return a call to initializer method
         return "dt.initDataTables('{$selector}', {$json});\n";
+    }
+
+    protected function translateOrder(array &$order, &$columns)
+    {
+        // sanitize cakephp style input [a => b] -> [[a, b]]
+        $new_order = [];
+        array_walk($order, function ($val, $key) use (&$new_order) {
+            if (is_integer($key))
+                $new_order[] = $val;
+            else
+                $new_order[] = [$key, $val];
+        });
+        $order = $new_order;
+
+        // sanitize single column input [a, b] -> [[a, b]]
+        if (count($order) == 2 && !is_array($order[0]))
+            $order = [$order];
+
+        // translate order columns
+        foreach ($order as $i => $o) {
+            if (is_numeric($order))
+                continue; // already a numerical index
+
+            foreach ($columns as $key => $v) {
+                // user might have specified it either way…
+                if ($o[0] === ($v['data'] ?? null) || $o[0] === ($v['field'] ?? null)) {
+                    $order[$i][0] = $key;
+                    break;
+    }
+            }
+        }
     }
 }

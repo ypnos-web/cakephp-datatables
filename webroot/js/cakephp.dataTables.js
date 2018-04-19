@@ -5,68 +5,63 @@ var dt = dt || {}; // initialize namespace
 dt.init = dt.init || {}; // namespace for initializers
 dt.render = dt.render || {}; // namespace for renderers
 
-dt.calculateHeight = function (id) {
-    var body = document.body,
-        html = document.documentElement;
-
-    var total = Math.max(body.scrollHeight, body.offsetHeight,
-        html.clientHeight, html.scrollHeight, html.offsetHeight),
-        footer = $('footer').outerHeight(true),
-        current = $(id).offset().top;
-
-    return total - footer - current - 140; // empirical number, table headers
-};
-
-dt.initDataTables = function (id, data) {
+dt.initDataTables = function (id, options) {
     /* Use text renderer by default. Escapes HTML. */
-    $.each(data.columns, function (i, val) {
+    $.each(options.columns, function (i, val) {
         if (!val.render) {
-            data.columns[i].render = $.fn.dataTable.render.text();
+            options.columns[i].render = $.fn.dataTable.render.text();
         }
     });
 
-    /* determine table height by default in scrolling case */
-    if (data.scrollY === true) {
-        var height = dt.calculateHeight(id);
-        if (height > 100) {
-            data.height = data.scrollY = height;
-        } else { // not enough space or window already scrolling
-            delete data.scrollY; // disable scrollY
-        }
+    /* call requested initializer methods */
+    if (typeof(options.init) !== 'undefined') {
+        var initializers = options.init;
+        delete options.init;
+        $(id).on('preInit.dt', function () {
+            var table = $(id).dataTable(); // table jQuery object
+            for (var i = 0; i < initializers.length; i++) {
+                initializers[i](table);
+            }
+        });
     }
 
     /* create new instance */
-    var table = $(id).dataTable(data);
-
-    /* call requested initializer methods */
-    if (typeof(data.init) === 'undefined')
-        return;
-    for (var i = 0; i < data.init.length; i++) {
-        var fn = data.init[i];
-        fn(table);
-    }
+    $(id).dataTable(options);
 };
 
 /**
  * Delay search trigger for DataTables input field
  * @param table dataTables object
  * @param minSearchCharacters minimum of characters necessary to trigger search
+ * @param delay milliseconds to delay search to prevent premature searches while typing
+ * @param selector optional, custom jQuery selector for an external search field
  */
-dt.init.delayedSearch = function (table, minSearchCharacters) {
+dt.init.delayedSearch = function (table, minSearchCharacters, delay, selector) {
     /* code taken from http://stackoverflow.com/a/23897722/21974 */
-    // Grab the datatables input box and alter how it is bound to events
-    var id = table.api().table().node().id + '_filter';
-    $('#' + id + ' input')
-        .unbind() // Unbind previous default bindings
-        .bind("input", function (e) { // Bind for field changes
+    // Grab given or datatables input box and alter how it is bound to events
+    selector = selector || '#' + table.attr('id') + '_filter input';
+    minSearchCharacters = minSearchCharacters || 3;
+    delay = delay || 200;
+    var timer = null;
+
+    var trigger = function (value) {
+        table.api().search(value).draw();
+    };
+
+    $(selector)
+        .off() // Unbind previous default bindings
+        .on('input', function (e) { // Bind for field changes
             // If enough characters, or search cleared with backspace
             if (this.value.length >= minSearchCharacters || !this.value) {
-                table.api().search(this.value).draw();
+                window.clearTimeout(timer);
+                timer = window.setTimeout(trigger, delay, this.value);
             }
         })
-        .bind("keydown", function (e) { // Bind for key presses
-            if (e.keyCode == 13) // Enter key
-                table.api().search(this.value).draw();
+        .on('keydown', function (e) { // Bind for key presses
+            if (e.keyCode === 13) { // Enter key
+                window.clearTimeout(timer);
+                trigger(this.value);
+            }
         });
 };
 
@@ -130,6 +125,73 @@ dt.init.columnSearch = function (table, delay) {
 };
 
 /**
+ * Resize table to perfectly fit into (remainder of) window
+ * This works best if you set 'scrollY' to your minimum desired height
+ * If you do not want to use scrollY, use a fixed height on the table element
+ * Body margin is considered for fixed footer, body padding for fixed header
+ * This installs a listener for 'fullscreenToggle' on the table
+ * @param table dataTables object
+ * @param offset Offset to subtract from calculated optimal height (fine-tuning)
+ * @param fullscreen true to fit into whole window height (default: remaining)
+ */
+dt.init.fitIntoWindow = function (table, offset, fullscreen) {
+    var wrapper = $(table.api().table().container());
+    var body = wrapper.find('.dataTables_scrollBody');
+    if (body.length === 0) // neither scrollX / scrollY used
+        body = table;
+
+    // use initial height as minimum height
+    var minHeight = body.outerHeight();
+
+    // store fullscreen state in table
+    table.data('fullscreen', fullscreen);
+
+    table.on('fitIntoWindow', function () {
+        var bodyTag = $('body');
+        var total = window.innerHeight;
+        if (table.data('fullscreen') || (wrapper.offset().top + minHeight > total)) {
+            /* fit table in window minus body padding (fixed header) */
+            total -= bodyTag.outerHeight(false) - bodyTag.height();
+        } else {
+            /* fit table between previous content and footer (body margin) */
+            total -= wrapper.offset().top;
+            total -= bodyTag.outerHeight(true) - bodyTag.outerHeight(false);
+        }
+        /* take table decorations (e.g. info, filter elements) into account */
+        var self = wrapper.outerHeight(true) - body.outerHeight(false);
+
+        /* check if height changed (e.g. not on only horizontal resize) */
+        var height = total - self - offset;
+        if (body.height() === height)
+            return;
+
+        /* set height and propagate change */
+        body.css('height', height + "px");
+        var api = table.api();
+        if (typeof(api.scroller) !== 'undefined') {
+            api.scroller.measure(false);
+        }
+        /* note: we do not redraw as it leads to several problems. */
+    });
+
+    // initial call
+    table.trigger('fitIntoWindow');
+
+    // call on window resize
+    var resizeTimer;
+    $(window).on('resize', function (e) {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function () { table.trigger('fitIntoWindow') }, 250);
+    });
+
+    // allow toggling fullscreen mode
+    table.on('toggleFullscreen', function () {
+        table.data('fullscreen', !table.data('fullscreen'));
+        table.trigger('fitIntoWindow');
+    });
+};
+
+/**
  * Render a date as localized string
  * @param data The data for the cell (based on columns.data)
  * @param type 'filter', 'display', 'type' or 'sort'
@@ -178,9 +240,19 @@ dt.h = function (d)
  *
  */
 dt.resetColumnSearch = function (table) {
+    var needRedraw = false; // redraw when a filter is dis-applied
     table.api().columns().every(function () {
+        // always clean up
+        $(this.footer()).children('input, select').val('');
+
+        if (!this.search())
+            return;
+
+        // remove the filter
         this.search('');
-        $('input, select', this.footer()).val('');
+        needRedraw = true;
     });
-    table.api().draw();
+
+    if (needRedraw)
+        table.api().draw();
 };

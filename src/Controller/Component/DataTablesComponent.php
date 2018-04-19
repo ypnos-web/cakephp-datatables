@@ -1,18 +1,22 @@
 <?php
 namespace DataTables\Controller\Component;
 
+use Cake\Collection\Collection;
 use Cake\Controller\Component;
 use Cake\Core\Configure;
-use Cake\Network\Exception\BadRequestException;
+use Cake\Database\Driver\Postgres;
+use Cake\Http\Exception\BadRequestException;
+use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\ORM\Query;
 use Cake\ORM\Table;
-use Cake\ORM\TableRegistry;
+use DataTables\Lib\ColumnDefinitions;
 
 /**
  * DataTables component
  */
 class DataTablesComponent extends Component
 {
+    use LocatorAwareTrait;
 
     protected $_defaultConfig = [
         'start' => 0,
@@ -22,6 +26,24 @@ class DataTablesComponent extends Component
         'conditionsOr' => [],  // table-wide search conditions
         'conditionsAnd' => [], // column search conditions
         'matching' => [],      // column search conditions for foreign tables
+        'comparison' => [], // per-column comparison definition
+    ];
+
+    protected $_defaultComparison = [
+        'string' => 'LIKE',
+        'text' => 'LIKE',
+        'uuid' => 'LIKE',
+        'integer' => '=',
+        'biginteger' => '=',
+        'float' => '=',
+        'decimal' => '=',
+        'boolean' => '=',
+        'binary' => 'LIKE',
+        'date' => 'LIKE',
+        'datetime' => 'LIKE',
+        'timestamp' => 'LIKE',
+        'time' => 'LIKE',
+        'json' => 'LIKE',
     ];
 
     protected $_viewVars = [
@@ -30,19 +52,39 @@ class DataTablesComponent extends Component
         'draw' => 0
     ];
 
-    protected $_tableName = null;
+    /** @var Table */
+    protected $_table = null;
 
-    protected $_plugin = null;
+    /** @var ColumnDefinitions */
+    protected $_columns = null;
+
+    public function initialize(array $config)
+    {
+        /* Set default comparison operators for field types */
+        if (Configure::check('DataTables.ComparisonOperators')) {
+            $operators = Configure::read('DataTables.ComparisonOperators');
+            $this->_defaultComparison = array_merge($this->_defaultComparison, $operators);
+        };
+
+        /* setup column definitions */
+        $this->_columns = new ColumnDefinitions();
+    }
+
+    public function columns()
+    {
+        return $this->_columns;
+    }
 
     /**
      * Process draw option (pass-through)
      */
     private function _draw()
     {
-        if (empty($this->request->query['draw']))
+        $drawParam = $this->getController()->getRequest()->getQuery('draw');
+        if (!$drawParam)
             return;
 
-        $this->_viewVars['draw'] = (int)$this->request->query['draw'];
+        $this->_viewVars['draw'] = (int)$drawParam;
     }
 
     /**
@@ -50,18 +92,19 @@ class DataTablesComponent extends Component
      * Alters $options if delegateOrder is set
      * In this case, the model needs to handle the 'customOrder' option.
      * @param $options: Query options
-     * @param $columns: Column definitions
+     * @param ColumnDefinitions|array Column definitions
      */
-    private function _order(array &$options, array &$columns)
+    private function _order(array &$options, &$columns)
     {
-        if (empty($this->request->query['order']))
+        $queryParams = $this->getController()->getRequest()->getQueryParams();
+
+        if (empty($queryParams['order']))
             return;
 
-        $order = $this->config('order');
-
+        $order = $this->getConfig('order');
         /* extract custom ordering from request */
-        foreach ($this->request->query['order'] as $item) {
-            if (empty($columns))
+        foreach ($queryParams['order'] as $item) {
+            if (!count($columns)) // note: empty() does not work on objects
                 throw new \InvalidArgumentException('Column ordering requested, but no column definitions provided.');
 
             $dir = strtoupper($item['dir']);
@@ -82,7 +125,7 @@ class DataTablesComponent extends Component
         if (!empty($options['delegateOrder'])) {
             $options['customOrder'] = $order;
         } else {
-            $this->config('order', $order);
+            $this->setConfig('order', $order);
         }
 
         /* remove default ordering in favor of our custom one */
@@ -94,30 +137,32 @@ class DataTablesComponent extends Component
      * Alters $options if delegateSearch is set
      * In this case, the model needs to handle the 'globalSearch' option.
      * @param $options: Query options
-     * @param $columns: Column definitions
+     * @param ColumnDefinitions|array $columns Column definitions
      * @return: true if additional filtering takes place
      */
-    private function _filter(array &$options, array &$columns) : bool
+    private function _filter(array &$options, &$columns) : bool
     {
+        $queryParams = $this->getController()->getRequest()->getQueryParams();
+
         /* add limit and offset */
-        if (!empty($this->request->query['length'])) {
-            $this->config('length', $this->request->query['length']);
+        if (!empty($queryParams['length'])) {
+            $this->setConfig('length', $queryParams['length']);
         }
-        if (!empty($this->request->query['start'])) {
-            $this->config('start', (int)$this->request->query['start']);
+        if (!empty($queryParams['start'])) {
+            $this->setConfig('start', (int)$queryParams['start']);
         }
 
         $haveFilters = false;
         $delegateSearch = $options['delegateSearch'] ?? false;
 
         /* add global filter (general search field) */
-        $globalSearch = $this->request->query['search']['value'] ?? false;
+        $globalSearch = $queryParams['search']['value'] ?? false;
         if ($globalSearch) {
             if (empty($columns))
                 throw new \InvalidArgumentException('Filtering requested, but no column definitions provided.');
 
             if ($delegateSearch) {
-                $options['globalSearch'] = $globalSearch;
+            $options['globalSearch'] = $globalSearch;
                 $haveFilters = true;
             } else {
                 foreach ($columns as $c) {
@@ -134,10 +179,10 @@ class DataTablesComponent extends Component
         }
 
         /* add local filters (column search fields) */
-        foreach ($this->request->query['columns'] ?? [] as $index => $column) {
+        foreach ($queryParams['columns'] ?? [] as $index => $column) {
             $localSearch = $column['search']['value'] ?? null;
             if (!empty($localSearch)) {
-                if (empty($columns))
+                if (!count($columns)) // note: empty() does not work on objects
                     throw new \InvalidArgumentException('Filtering requested, but no column definitions provided.');
 
                 $c = $columns[$index] ?? null;
@@ -151,10 +196,11 @@ class DataTablesComponent extends Component
                     $options['localSearch'][$c['field']] = $localSearch;
                 } else {
                     $this->_addCondition($c['field'], $localSearch);
-                }
-                $haveFilters = true;
             }
+                $haveFilters = true;
         }
+        }
+
         return $haveFilters;
     }
 
@@ -163,24 +209,25 @@ class DataTablesComponent extends Component
      *
      * @param $tableName: ORM table name
      * @param $finder: Finder name (as in Table::find())
-     * @param array $options: Finder options (as in Table::find())
-     * @param array $columns: Column definitions needed for filter/order operations
+     * @param $options: Finder options (as in Table::find())
+     * @param $columns: Column definitions needed for filter/order operations
      * @return Query to be evaluated (Query::count() may have already been called)
      */
     public function find(string $tableName, string $finder = 'all', array $options = [], array $columns = []) : Query
     {
         $delegateSearch = $options['delegateSearch'] ?? false;
+        if (empty($columns))
+            $columns = $this->_columns;
 
         // -- get table object
-        $table = TableRegistry::get($tableName);
-        $this->_tableName = $table->alias();
+        $this->_table = $this->getTableLocator()->get($tableName);
 
         // -- process draw & ordering options
         $this->_draw();
         $this->_order($options, $columns);
 
         // -- call table's finder w/o filters
-        $data = $table->find($finder, $options);
+        $data = $this->_table->find($finder, $options);
 
         // -- retrieve total count
         $this->_viewVars['recordsTotal'] = $data->count();
@@ -192,16 +239,16 @@ class DataTablesComponent extends Component
         if ($haveFilters) {
             if ($delegateSearch) {
                 // call finder again to process filters (provided in $options)
-                $data = $table->find($finder, $options);
+                $data = $this->_table->find($finder, $options);
             } else {
-                $data->where($this->config('conditionsAnd'));
-                foreach ($this->config('matching') as $association => $where) {
-                    $data->matching($association, function ($q) use ($where) {
+                $data->where($this->getConfig('conditionsAnd'));
+                foreach ($this->getConfig('matching') as $association => $where) {
+                    $data->matching($association, function (Query $q) use ($where) {
                         return $q->where($where);
                     });
                 }
-                if (!empty($this->config('conditionsOr'))) {
-                    $data->where(['or' => $this->config('conditionsOr')]);
+                if (!empty($this->getConfig('conditionsOr'))) {
+                    $data->where(['or' => $this->getConfig('conditionsOr')]);
                 }
             }
         }
@@ -210,13 +257,13 @@ class DataTablesComponent extends Component
         $this->_viewVars['recordsFiltered'] = $data->count();
 
         // -- add limit
-        if ($this->config('length') > 0) { // dt might provide -1
-            $data->limit($this->config('length'));
-            $data->offset($this->config('start'));
+        if ($this->getConfig('length') > 0) { // dt might provide -1
+            $data->limit($this->getConfig('length'));
+            $data->offset($this->getConfig('start'));
         }
 
         // -- sort
-        $data->order($this->config('order'));
+        $data->order($this->getConfig('order'));
 
         // -- set all view vars to view and serialize array
         $this->_setViewVars();
@@ -226,7 +273,7 @@ class DataTablesComponent extends Component
 
     private function _setViewVars()
     {
-        $controller = $this->_registry->getController();
+        $controller = $this->getController();
 
         $_serialize = $controller->viewVars['_serialize'] ?? [];
         $_serialize = array_merge($_serialize, array_keys($this->_viewVars));
@@ -237,19 +284,66 @@ class DataTablesComponent extends Component
 
     private function _addCondition($column, $value, $type = 'and')
     {
-        $right = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
-        $condition = ["{$column} LIKE" => $right];
+        /* extract table (encoded in $column or default) */
+        $table = $this->_table;
+        if (($pos = strpos($column, '.')) !== false) {
+            $table = $this->getTableLocator()->get(substr($column, 0, $pos));
+            $column = substr($column, $pos + 1);
+        }
 
+        $textCast = "";
+        
+        /* build condition */
+        $comparison = trim($this->_getComparison($table, $column));
+        // wrap value for LIKE and NOT LIKE
+        if (strpos(strtolower($comparison), 'like') !== false) {
+            $value = $this->getConfig('prefixSearch') ? "{$value}%" : "%{$value}%";
+            
+            if ($this->_table->getConnection()->getDriver() instanceof Postgres) {
+                $columnDesc = $table->getSchema()->getColumn($column);
+                $columnType = $columnDesc['type'];
+                if ($columnType !== 'string' && $columnType !== 'text') {
+                    $textCast = "::text";
+                }
+            }
+        }
+        $condition = ["{$table->getAlias()}.{$column}{$textCast} {$comparison}" => $value];
+
+        /* add as global condition */
         if ($type === 'or') {
-            $this->config('conditionsOr', $condition); // merges
+            $this->setConfig('conditionsOr', $condition); // merges
             return;
         }
 
-        list($association, $field) = explode('.', $column);
-        if ($this->_tableName == $association) {
-            $this->config('conditionsAnd', $condition); // merges
+        /* add as local condition */
+        if ($table === $this->_table) {
+            $this->setConfig('conditionsAnd', $condition); // merges
         } else {
-            $this->config('matching', [$association => $condition]); // merges
+            $this->setConfig('matching', [$table->getAlias() => $condition]); // merges
         }
+    }
+
+    /**
+     * Get comparison operator by entity and column name.
+     *
+     * @param $table: Target ORM table
+     * @param $column: Database column name (may be in form Table.column)
+     * @return: Database comparison operator
+     */
+    protected function _getComparison(Table $table, string $column) : string
+    {
+        $config = new Collection($this->getConfig('comparison'));
+
+        /* Lookup per-column configuration for the comparison operator */
+        $userConfig = $config->filter(function ($item, $key) use ($table, $column) {
+            $wanted = sprintf('%s.%s', $table->getAlias(), $column);
+            return strtolower($key) === strtolower($wanted);
+        });
+        if (!$userConfig->isEmpty())
+            return $userConfig->first();
+
+        /* Lookup per-field type configuration for the comparison operator */
+        $columnDesc = $table->getSchema()->getColumn($column);
+        return $this->_defaultComparison[$columnDesc['type']] ?? '=';
     }
 }
