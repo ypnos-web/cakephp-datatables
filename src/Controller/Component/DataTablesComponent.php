@@ -5,10 +5,10 @@ use Cake\Collection\Collection;
 use Cake\Controller\Component;
 use Cake\Core\Configure;
 use Cake\Database\Driver\Postgres;
-use Cake\Network\Exception\BadRequestException;
+use Cake\Http\Exception\BadRequestException;
+use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\ORM\Query;
 use Cake\ORM\Table;
-use Cake\ORM\TableRegistry;
 use DataTables\Lib\ColumnDefinitions;
 
 /**
@@ -16,6 +16,7 @@ use DataTables\Lib\ColumnDefinitions;
  */
 class DataTablesComponent extends Component
 {
+    use LocatorAwareTrait;
 
     protected $_defaultConfig = [
         'start' => 0,
@@ -79,10 +80,11 @@ class DataTablesComponent extends Component
      */
     private function _draw()
     {
-        if (empty($this->request->query['draw']))
+        $drawParam = $this->getController()->getRequest()->getQuery('draw');
+        if (!$drawParam)
             return;
 
-        $this->_viewVars['draw'] = (int)$this->request->query['draw'];
+        $this->_viewVars['draw'] = (int)$drawParam;
     }
 
     /**
@@ -94,12 +96,14 @@ class DataTablesComponent extends Component
      */
     private function _order(array &$options, &$columns)
     {
-        if (empty($this->request->query['order']))
+        $queryParams = $this->getController()->getRequest()->getQueryParams();
+
+        if (empty($queryParams['order']))
             return;
 
-        $order = $this->config('order');
+        $order = $this->getConfig('order');
         /* extract custom ordering from request */
-        foreach ($this->request->query['order'] as $item) {
+        foreach ($queryParams['order'] as $item) {
             if (!count($columns)) // note: empty() does not work on objects
                 throw new \InvalidArgumentException('Column ordering requested, but no column definitions provided.');
 
@@ -121,7 +125,7 @@ class DataTablesComponent extends Component
         if (!empty($options['delegateOrder'])) {
             $options['customOrder'] = $order;
         } else {
-            $this->config('order', $order);
+            $this->setConfig('order', $order);
         }
 
         /* remove default ordering in favor of our custom one */
@@ -138,19 +142,21 @@ class DataTablesComponent extends Component
      */
     private function _filter(array &$options, &$columns) : bool
     {
+        $queryParams = $this->getController()->getRequest()->getQueryParams();
+
         /* add limit and offset */
-        if (!empty($this->request->query['length'])) {
-            $this->config('length', $this->request->query['length']);
+        if (!empty($queryParams['length'])) {
+            $this->setConfig('length', $queryParams['length']);
         }
-        if (!empty($this->request->query['start'])) {
-            $this->config('start', (int)$this->request->query['start']);
+        if (!empty($queryParams['start'])) {
+            $this->setConfig('start', (int)$queryParams['start']);
         }
 
         $haveFilters = false;
         $delegateSearch = $options['delegateSearch'] ?? false;
 
         /* add global filter (general search field) */
-        $globalSearch = $this->request->query['search']['value'] ?? false;
+        $globalSearch = $queryParams['search']['value'] ?? false;
         if ($globalSearch) {
             if (empty($columns))
                 throw new \InvalidArgumentException('Filtering requested, but no column definitions provided.');
@@ -173,7 +179,7 @@ class DataTablesComponent extends Component
         }
 
         /* add local filters (column search fields) */
-        foreach ($this->request->query['columns'] ?? [] as $index => $column) {
+        foreach ($queryParams['columns'] ?? [] as $index => $column) {
             $localSearch = $column['search']['value'] ?? null;
             if (!empty($localSearch)) {
                 if (!count($columns)) // note: empty() does not work on objects
@@ -214,7 +220,7 @@ class DataTablesComponent extends Component
             $columns = $this->_columns;
 
         // -- get table object
-        $this->_table = TableRegistry::get($tableName);
+        $this->_table = $this->getTableLocator()->get($tableName);
 
         // -- process draw & ordering options
         $this->_draw();
@@ -235,14 +241,14 @@ class DataTablesComponent extends Component
                 // call finder again to process filters (provided in $options)
                 $data = $this->_table->find($finder, $options);
             } else {
-                $data->where($this->config('conditionsAnd'));
-                foreach ($this->config('matching') as $association => $where) {
+                $data->where($this->getConfig('conditionsAnd'));
+                foreach ($this->getConfig('matching') as $association => $where) {
                     $data->matching($association, function (Query $q) use ($where) {
                         return $q->where($where);
                     });
                 }
-                if (!empty($this->config('conditionsOr'))) {
-                    $data->where(['or' => $this->config('conditionsOr')]);
+                if (!empty($this->getConfig('conditionsOr'))) {
+                    $data->where(['or' => $this->getConfig('conditionsOr')]);
                 }
             }
         }
@@ -251,13 +257,13 @@ class DataTablesComponent extends Component
         $this->_viewVars['recordsFiltered'] = $data->count();
 
         // -- add limit
-        if ($this->config('length') > 0) { // dt might provide -1
-            $data->limit($this->config('length'));
-            $data->offset($this->config('start'));
+        if ($this->getConfig('length') > 0) { // dt might provide -1
+            $data->limit($this->getConfig('length'));
+            $data->offset($this->getConfig('start'));
         }
 
         // -- sort
-        $data->order($this->config('order'));
+        $data->order($this->getConfig('order'));
 
         // -- set all view vars to view and serialize array
         $this->_setViewVars();
@@ -267,7 +273,7 @@ class DataTablesComponent extends Component
 
     private function _setViewVars()
     {
-        $controller = $this->_registry->getController();
+        $controller = $this->getController();
 
         $_serialize = $controller->viewVars['_serialize'] ?? [];
         $_serialize = array_merge($_serialize, array_keys($this->_viewVars));
@@ -281,7 +287,7 @@ class DataTablesComponent extends Component
         /* extract table (encoded in $column or default) */
         $table = $this->_table;
         if (($pos = strpos($column, '.')) !== false) {
-            $table = TableRegistry::get(substr($column, 0, $pos));
+            $table = $this->getTableLocator()->get(substr($column, 0, $pos));
             $column = substr($column, $pos + 1);
         }
 
@@ -291,53 +297,53 @@ class DataTablesComponent extends Component
         $comparison = trim($this->_getComparison($table, $column));
         // wrap value for LIKE and NOT LIKE
         if (strpos(strtolower($comparison), 'like') !== false) {
-            $value = $this->config('prefixSearch') ? "{$value}%" : "%{$value}%";
+            $value = $this->getConfig('prefixSearch') ? "{$value}%" : "%{$value}%";
             
             if ($this->_table->getConnection()->getDriver() instanceof Postgres) {
-                $columnDesc = $table->schema()->column($column);
+                $columnDesc = $table->getSchema()->getColumn($column);
                 $columnType = $columnDesc['type'];
                 if ($columnType !== 'string' && $columnType !== 'text') {
                     $textCast = "::text";
                 }
             }
         }
-        $condition = ["{$table->alias()}.{$column}{$textCast} {$comparison}" => $value];
+        $condition = ["{$table->getAlias()}.{$column}{$textCast} {$comparison}" => $value];
 
         /* add as global condition */
         if ($type === 'or') {
-            $this->config('conditionsOr', $condition); // merges
+            $this->setConfig('conditionsOr', $condition); // merges
             return;
         }
 
         /* add as local condition */
         if ($table === $this->_table) {
-            $this->config('conditionsAnd', $condition); // merges
+            $this->setConfig('conditionsAnd', $condition); // merges
         } else {
-            $this->config('matching', [$table->alias() => $condition]); // merges
+            $this->setConfig('matching', [$table->getAlias() => $condition]); // merges
         }
     }
 
     /**
      * Get comparison operator by entity and column name.
      *
+     * @param $table: Target ORM table
      * @param $column: Database column name (may be in form Table.column)
      * @return: Database comparison operator
      */
     protected function _getComparison(Table $table, string $column) : string
     {
-        $config = new Collection($this->config('comparison'));
+        $config = new Collection($this->getConfig('comparison'));
 
         /* Lookup per-column configuration for the comparison operator */
         $userConfig = $config->filter(function ($item, $key) use ($table, $column) {
-            $wanted = sprintf('%s.%s', $table->alias(), $column);
+            $wanted = sprintf('%s.%s', $table->getAlias(), $column);
             return strtolower($key) === strtolower($wanted);
         });
-        if (!$userConfig->isEmpty()) {
+        if (!$userConfig->isEmpty())
             return $userConfig->first();
-        }
 
         /* Lookup per-field type configuration for the comparison operator */
-        $columnDesc = $table->schema()->column($column);
+        $columnDesc = $table->getSchema()->getColumn($column);
         return $this->_defaultComparison[$columnDesc['type']] ?? '=';
     }
 }

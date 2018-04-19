@@ -23,9 +23,9 @@ class DataTablesHelper extends Helper
     public function initialize(array $config)
     {
         /* set default i18n (not possible in _$defaultConfig due to use of __d() */
-        if (empty($this->config('language'))) {
+        if (empty($this->getConfig('language'))) {
             // defaults from datatables.net/reference/option/language
-            $this->config('language', [
+            $this->setConfig('language', [
                 'emptyTable' => __d('data_tables', 'No data available in table'),
                 'info' => __d('data_tables', 'Showing _START_ to _END_ of _TOTAL_ entries'),
                 'infoEmpty' => __d('data_tables', 'No entries to show'),
@@ -63,7 +63,7 @@ class DataTablesHelper extends Helper
     /**
      * Return a table with dataTables overlay
      * @param $id: DOM id of the table
-     * @param $dtOptions: Options for DataTables
+     * @param $dtOptions: Options for DataTables (to be merged with this helper's config as defaults)
      * @param $htmlOptions: Options for the table, e.g. CSS classes
      * @return string containing a <table> and a <script> element
      */
@@ -81,22 +81,19 @@ class DataTablesHelper extends Helper
     }
 
     /**
-     * @deprecated use configShallow() instead
+     * Return JavaScript code to initialize DataTables object
+     * Use this method if you want to render the <table> element yourself
+     * Typically the output of this method is fed to HtmlHelper::scriptBlock()
+     * @param string $selector JQuery selector for the <table> element
+     * @param array $options Optional additional/replacement configuration to this helper's config
+     * @return string
      */
-    public function init(array $options = [])
-    {
-        /* merge options non-recursively */
-        $this->configShallow($options);
-
-        return $this;
-    }
-
-    public function draw(string $selector, array $options = [])
+    public function draw(string $selector, array $options = []) : string
     {
         // incorporate any defaults set earlier
-        $options += $this->config();
+        $options += $this->getConfig();
         // fill-in missing language options, in case some were customized
-        $options['language'] += $this->config('language');
+        $options['language'] += $this->getConfig('language');
 
         // sanitize & translate order
         if (!empty($options['order']))

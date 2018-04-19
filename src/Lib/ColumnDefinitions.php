@@ -36,6 +36,7 @@ class ColumnDefinitions implements \JsonSerializable, \ArrayAccess, \IteratorAgg
     /**
      * Set titles of columns in given order
      * Convenience method for setting all titles at once
+     * @param $titles array of titles in order of columns
      */
     public function setTitles(array $titles)
     {
