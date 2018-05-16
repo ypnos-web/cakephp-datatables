@@ -19,7 +19,7 @@
     ],
     "require": {
         "php": ">=7.0",
-        "cakephp/cakephp": "^3.5"
+        "cakephp/cakephp": "^3.6"
     },
     "autoload": {
         "psr-4": {

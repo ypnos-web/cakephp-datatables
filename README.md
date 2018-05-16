@@ -4,7 +4,7 @@
 
 ## Versioning
 
-* Versions 3.x are for users of CakePHP 3.5, ideally 3.6.
+* Versions 3.x are for users of CakePHP 3.6 and above
 * Versions 2.x are available for older CakePHP installations, but will not receive new features
 * Version 1.0 is a tag available for people who let their code rot. Consider upgrading by only changing a couple of lines!
 * Branch `php5` is for people without PHP 7 and currently stuck at version 1.0 (pull requests welcome)
