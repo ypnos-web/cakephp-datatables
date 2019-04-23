@@ -156,8 +156,8 @@ class DataTablesComponent extends Component
         $delegateSearch = $options['delegateSearch'] ?? false;
 
         /* add global filter (general search field) */
-        $globalSearch = $queryParams['search']['value'] ?? false;
-        if ($globalSearch) {
+        $globalSearch = $queryParams['search']['value'] ?? '';
+        if ($globalSearch !== '') {
             if (empty($columns))
                 throw new \InvalidArgumentException('Filtering requested, but no column definitions provided.');
 
@@ -180,8 +180,8 @@ class DataTablesComponent extends Component
 
         /* add local filters (column search fields) */
         foreach ($queryParams['columns'] ?? [] as $index => $column) {
-            $localSearch = $column['search']['value'] ?? null;
-            if (!empty($localSearch)) {
+            $localSearch = $column['search']['value'] ?? '';
+            if ($localSearch !== '') {
                 if (!count($columns)) // note: empty() does not work on objects
                     throw new \InvalidArgumentException('Filtering requested, but no column definitions provided.');
 
