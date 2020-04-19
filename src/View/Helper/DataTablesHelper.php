@@ -20,7 +20,7 @@ class DataTablesHelper extends Helper
         'deferRender' => true,
     ];
 
-    public function initialize(array $config)
+    public function initialize(array $config) : void
     {
         /* set default i18n (not possible in _$defaultConfig due to use of __d() */
         if (empty($this->getConfig('language'))) {
@@ -75,7 +75,7 @@ class DataTablesHelper extends Helper
 
         $code = $this->draw("#{$id}", $dtOptions);
 
-        return $table.$this->Html->scriptBlock($code);
+        return $table.$this->Html->scriptBlock($code, ['block' => true]);
     }
 
     /**
@@ -91,7 +91,11 @@ class DataTablesHelper extends Helper
         // incorporate any defaults set earlier
         $options += $this->getConfig();
         // fill-in missing language options, in case some were customized
-        $options['language'] += $this->getConfig('language');
+        if(isset($options['language']['url'])) {
+            $options['language'] = ['url' => $options['language']['url']];
+        } else {
+            $options['language'] += $this->getConfig('language');
+        }
 
         // sanitize & translate order
         if (!empty($options['order']))
@@ -103,12 +107,14 @@ class DataTablesHelper extends Helper
 
         // prepare javascript object from the config, including method calls
         $json = CallbackFunction::resolve(json_encode($options));
+        $json = str_replace('"#!!','',$json);
+        $json = str_replace('!!#"','',$json);
 
         // return a call to initializer method
         return "dt.initDataTables('{$selector}', {$json});\n";
     }
 
-    protected function translateOrder(array &$order, &$columns)
+    public function translateOrder(array &$order, &$columns)
     {
         // sanitize cakephp style input [a => b] -> [[a, b]]
         $new_order = [];
@@ -137,5 +143,6 @@ class DataTablesHelper extends Helper
     }
             }
         }
+        return $order;
     }
 }

@@ -58,7 +58,7 @@ class DataTablesComponent extends Component
     /** @var ColumnDefinitions */
     protected $_columns = null;
 
-    public function initialize(array $config)
+    public function initialize(array $config): void
     {
         /* Set default comparison operators for field types */
         if (Configure::check('DataTables.ComparisonOperators')) {
@@ -234,7 +234,7 @@ class DataTablesComponent extends Component
 
         // -- process filter options
         $haveFilters = $this->_filter($options, $columns);
-
+        
         // -- apply filters
         if ($haveFilters) {
             if ($delegateSearch) {
@@ -275,7 +275,7 @@ class DataTablesComponent extends Component
     {
         $controller = $this->getController();
 
-        $_serialize = $controller->viewVars['_serialize'] ?? [];
+        $_serialize = $controller->viewBuilder()->getVar('_serialize') ?? [];
         $_serialize = array_merge($_serialize, array_keys($this->_viewVars));
 
         $controller->set($this->_viewVars);
@@ -295,18 +295,20 @@ class DataTablesComponent extends Component
         
         /* build condition */
         $comparison = trim($this->_getComparison($table, $column));
+        
+        $columnDesc = $table->getSchema()->getColumn($column);
+        $columnType = $columnDesc['type'];
         // wrap value for LIKE and NOT LIKE
         if (strpos(strtolower($comparison), 'like') !== false) {
             $value = $this->getConfig('prefixSearch') ? "{$value}%" : "%{$value}%";
             
             if ($this->_table->getConnection()->getDriver() instanceof Postgres) {
-                $columnDesc = $table->getSchema()->getColumn($column);
-                $columnType = $columnDesc['type'];
                 if ($columnType !== 'string' && $columnType !== 'text') {
                     $textCast = "::text";
                 }
             }
         }
+        settype($value, $columnType);
         $condition = ["{$table->getAlias()}.{$column}{$textCast} {$comparison}" => $value];
 
         /* add as global condition */
