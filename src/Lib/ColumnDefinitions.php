@@ -66,19 +66,19 @@ class ColumnDefinitions implements \JsonSerializable, \ArrayAccess, \IteratorAgg
         return isset($this->index[$offset]);
     }
 
-    public function offsetGet($offset)
+    public function offsetGet(mixed $offset): mixed
     {
         if (is_numeric($offset))
             return $this->columns[$offset];
         return $this->columns[$this->index[$offset]];
     }
 
-    public function offsetSet($offset, $value)
+    public function offsetSet(mixed $offset, mixed $value): void
     {
         throw new \BadMethodCallException('Direct setting is not supported! Use add().');
     }
 
-    public function offsetUnset($offset)
+    public function offsetUnset(mixed $offset): void
     {
         /* we do not allow splicing because DataTables uses a column's index
            for the ordering command. So the order of columns needs to stay
@@ -86,12 +86,12 @@ class ColumnDefinitions implements \JsonSerializable, \ArrayAccess, \IteratorAgg
         throw new \BadMethodCallException('Unset is not supported!');
     }
 
-    public function getIterator()
+    public function getIterator(): Traversable
     {
         return new \ArrayIterator($this->columns);
     }
 
-    public function count()
+    public function count(): int
     {
         return count($this->columns);
     }
