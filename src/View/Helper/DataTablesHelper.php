@@ -11,9 +11,9 @@ use DataTables\Lib\CallbackFunction;
  */
 class DataTablesHelper extends Helper
 {
-    public $helpers = ['Html'];
+    public array $helpers = ['Html'];
 
-    protected $_defaultConfig = [
+    protected array $_defaultConfig = [
         'searching' => true,
         'processing' => true,
         'serverSide' => true,

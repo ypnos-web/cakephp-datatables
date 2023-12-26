@@ -18,7 +18,7 @@ class DataTablesComponent extends Component
 {
     use LocatorAwareTrait;
 
-    protected $_defaultConfig = [
+    protected array $_defaultConfig = [
         'start' => 0,
         'length' => 10,
         'order' => [],
@@ -263,7 +263,7 @@ class DataTablesComponent extends Component
         }
 
         // -- sort
-        $data->order($this->getConfig('order'));
+        $data->orderBy($this->getConfig('order'));
 
         // -- set all view vars to view and serialize array
         $this->_setViewVars();
