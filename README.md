@@ -23,8 +23,17 @@ Please see the [Documentation][doc], esp. the [Quick Start tutorial][quickstart]
 [doc]: https://github.com/ypnos-web/cakephp-datatables/wiki
 [quickstart]: https://github.com/ypnos-web/cakephp-datatables/wiki/Quick-Start
 
-Not entirely accurate for new versions but should be enough to get you going.
 
 ## Credits
 
 This work is based on the [code by Frank Heider](https://github.com/fheider/cakephp-datatables) and incorporates [code by Xavier Zolezzi](https://github.com/x-zolezzi/cakephp-datatables).
+
+___
+## IMPORTANT SECURITY NOTICE for users prior to Oct 24, 2017
+
+The original code by fheider is vulnerable to SQL injection attacks, which was made apparent by a recent
+[addition to the CakePHP documentation](https://github.com/cakephp/cakephp/commit/b2b45af37f807068f6c23f152fe6e5bf64656915).
+The vulnerability is fixed by a [breaking change](https://github.com/ypnos-web/cakephp-datatables/commit/81929ad62d1e4041d00c1904f67771fec04ecd5f)
+in all branches in this repository. It affects the ordering and filtering functionality of DataTables in conjunction with
+server-side processing. If you are using a prior version of this plugin, you need to update it immediately and, if needed, change your code to
+[allow ordering and filtering with server-side processing](https://github.com/ypnos-web/cakephp-datatables/wiki/Quick-Start#enable-dynamic-filters-and-ordering).
