@@ -8,9 +8,9 @@ The major version follows the CakePHP version. Versions 3.x are for cakePHP 3.6 
 
 ## Requirements
 
-* PHP 7
-* CakePHP 4.x
-* DataTables 1.10.x
+* PHP 7 or 8
+* CakePHP 5.x
+* DataTables 1.x or 2.x
 
 ## Installation and Usage
 
@@ -18,6 +18,8 @@ Please see the [Documentation][doc], esp. the [Quick Start tutorial][quickstart]
 
 [doc]: https://github.com/x-zolezzi/cakephp-datatables/wiki
 [quickstart]: https://github.com/x-zolezzi/cakephp-datatables/wiki/Quick-Start
+
+Not entirely accurate for new versions but should be enough to get you going.
 
 ## Credits
 
